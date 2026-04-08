@@ -1,30 +1,46 @@
-import Sidebar from "../components/Sidebar"
-import Navbar from "../components/Navbar"
+import { useState } from 'react'
+import { Outlet } from 'react-router-dom'
+import { motion } from 'framer-motion'
+import Sidebar from '../components/Sidebar'
+import Navbar from '../components/Navbar'
 
-function DashboardLayout({children}){
+export default function DashboardLayout() {
+  const [sidebarOpen, setSidebarOpen] = useState(true)
+  const isMobile = typeof window !== 'undefined' && window.innerWidth < 1024
 
-return(
+  const handleNavigate = () => {
+    if (isMobile) setSidebarOpen(false)
+  }
 
-<div style={{display:"flex"}}>
+  return (
+    <div className="min-h-screen bg-background flex">
+      <motion.aside
+        initial={{ x: -280, opacity: 0 }}
+        animate={{
+          x: !sidebarOpen && isMobile ? -300 : 0,
+          opacity: 1
+        }}
+        transition={{ type: 'spring', stiffness: 120, damping: 18 }}
+        className="fixed z-30 lg:static h-screen lg:sticky top-0"
+      >
+        <Sidebar collapsed={!sidebarOpen && !isMobile} onToggle={() => setSidebarOpen((s) => !s)} onNavigate={handleNavigate} />
+      </motion.aside>
 
-<Sidebar/>
+      {sidebarOpen && isMobile && (
+        <div
+          className="fixed inset-0 bg-black/30 backdrop-blur-sm z-20 lg:hidden"
+          onClick={() => setSidebarOpen(false)}
+        />
+      )}
 
-<div style={{flex:1}}>
-
-<Navbar/>
-
-<div style={{padding:"20px"}}>
-
-{children}
-
-</div>
-
-</div>
-
-</div>
-
-)
-
+      <div className="flex-1 flex flex-col min-h-screen lg:ml-0">
+        <Navbar onToggleSidebar={() => setSidebarOpen((s) => !s)} />
+        <main className="flex-1 overflow-y-auto px-6 pb-10 pt-4">
+          <div className="page-shell">
+            <Outlet />
+          </div>
+        </main>
+      </div>
+    </div>
+  )
 }
-
-export default DashboardLayout
