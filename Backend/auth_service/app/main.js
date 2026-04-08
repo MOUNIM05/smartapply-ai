@@ -5,7 +5,9 @@ const cors = require("cors");
 const morgan = require("morgan");
 
 const connectDatabase = require("./config/database");
-const routes = require("./routes/auth.routes");
+const authRoutes = require("./routes/auth.routes");
+const userRoutes = require("./routes/user.routes");
+const profileRoutes = require("./routes/profile.routes");
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -20,7 +22,9 @@ app.get("/", (req, res) => {
   });
 });
 
-app.use(routes);
+app.use(authRoutes);
+app.use(userRoutes);
+app.use(profileRoutes);
 
 app.use((req, res) => {
   res.status(404).json({

@@ -1,5 +1,5 @@
-const { validateLoginRequest } = require("../schemas/auth.schema");
-const { login } = require("../services/auth.service");
+const { validateLoginRequest, validateRegisterRequest } = require("../schemas/auth.schema");
+const { login, register, logout } = require("../services/auth.service");
 
 const loginController = async (req, res, next) => {
   try {
@@ -12,6 +12,28 @@ const loginController = async (req, res, next) => {
   }
 };
 
+const registerController = async (req, res, next) => {
+  try {
+    const payload = validateRegisterRequest(req.body);
+    const result = await register(payload);
+
+    res.status(201).json(result);
+  } catch (error) {
+    next(error);
+  }
+};
+
+const logoutController = async (req, res, next) => {
+  try {
+    const result = await logout();
+    res.status(200).json(result);
+  } catch (error) {
+    next(error);
+  }
+};
+
 module.exports = {
-  loginController
+  loginController,
+  registerController,
+  logoutController
 };

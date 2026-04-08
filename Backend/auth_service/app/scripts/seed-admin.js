@@ -4,38 +4,38 @@ const connectDatabase = require("../config/database");
 const { User } = require("../models/auth.model");
 const { hashPassword } = require("../services/auth.service");
 
-const seedUser = async () => {
+const seedAdmin = async () => {
   try {
     await connectDatabase();
 
-    const email = "test@gmail.com";
-    const plainPassword = "123456";
+    const email = "admin@gmail.com";
+    const plainPassword = "admin123";
 
-    const existingUser = await User.findOne({ email });
+    const existingAdmin = await User.findOne({ email });
 
-    if (existingUser) {
-      console.log("Test user already exists:", email);
+    if (existingAdmin) {
+      console.log("Admin already exists:", email);
       process.exit(0);
     }
 
     const hashedPassword = await hashPassword(plainPassword);
 
     await User.create({
-      first_name: "Test",
-      last_name: "User",
+      first_name: "Admin",
+      last_name: "System",
       email,
       password: hashedPassword,
-      role: "user"
+      role: "admin"
     });
 
-    console.log("Test user created successfully");
+    console.log("Admin created successfully");
     console.log(`Email: ${email}`);
     console.log(`Password: ${plainPassword}`);
     process.exit(0);
   } catch (error) {
-    console.error("Failed to seed user:", error.message);
+    console.error("Failed to seed admin:", error.message);
     process.exit(1);
   }
 };
 
-seedUser();
+seedAdmin();

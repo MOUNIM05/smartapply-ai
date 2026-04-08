@@ -6,7 +6,8 @@
   "scripts": {
     "start": "node app/main.js",
     "dev": "nodemon app/main.js",
-    "seed:user": "node app/scripts/seed-user.js"
+    "seed:user": "node app/scripts/seed-user.js",
+    "seed:admin": "node app/scripts/seed-admin.js"
   },
   "dependencies": {
     "bcryptjs": "^2.4.3",
