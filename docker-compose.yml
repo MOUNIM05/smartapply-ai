@@ -63,6 +63,23 @@ services:
       - mongodb
     restart: unless-stopped
 
+  document-service:
+    build:
+      context: ./Backend/document_service
+      dockerfile: Dockerfile
+    container_name: cv-ai-document-service
+    ports:
+      - "5004:5002"
+    environment:
+      PORT: 5002
+      MONGO_URI: mongodb://mongodb:27017/document-service
+    volumes:
+      - ./Backend/document_service:/app
+      - /app/node_modules
+    depends_on:
+      - mongodb
+    restart: unless-stopped
+
   mongodb:
     image: mongo:7
     container_name: cv-ai-mongodb
