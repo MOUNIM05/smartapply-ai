@@ -1,4 +1,4 @@
-const { User } = require("../models/auth.model");
+const { User } = require("../models/user.model");
 const { Profile } = require("../models/profile.model");
 
 const serializeProfile = (profile) => ({
@@ -14,6 +14,18 @@ const serializeProfile = (profile) => ({
   created_at: profile.createdAt,
   updated_at: profile.updatedAt
 });
+
+const getProfileByUserIdOrThrow = async (userId) => {
+  const profile = await Profile.findOne({ user_id: userId });
+
+  if (!profile) {
+    const error = new Error("Profile not found");
+    error.statusCode = 404;
+    throw error;
+  }
+
+  return profile;
+};
 
 const createProfile = async (userId, payload) => {
   const user = await User.findById(userId);
@@ -52,18 +64,6 @@ const createProfile = async (userId, payload) => {
     message: "Profile created successfully",
     profile: serializeProfile(profile)
   };
-};
-
-const getProfileByUserIdOrThrow = async (userId) => {
-  const profile = await Profile.findOne({ user_id: userId });
-
-  if (!profile) {
-    const error = new Error("Profile not found");
-    error.statusCode = 404;
-    throw error;
-  }
-
-  return profile;
 };
 
 const getCurrentProfile = async (userId) => {

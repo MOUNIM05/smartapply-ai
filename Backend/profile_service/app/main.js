@@ -5,11 +5,10 @@ const cors = require("cors");
 const morgan = require("morgan");
 
 const connectDatabase = require("./config/database");
-const authRoutes = require("./routes/auth.routes");
-const userRoutes = require("./routes/user.routes");
+const profileRoutes = require("./routes/profile.routes");
 
 const app = express();
-const PORT = process.env.PORT || 5000;
+const PORT = process.env.PORT || 5001;
 
 app.use(cors());
 app.use(morgan("dev"));
@@ -17,12 +16,11 @@ app.use(express.json());
 
 app.get("/", (req, res) => {
   res.status(200).json({
-    message: "Auth service is running"
+    message: "Profile service is running"
   });
 });
 
-app.use(authRoutes);
-app.use(userRoutes);
+app.use(profileRoutes);
 
 app.use((req, res) => {
   res.status(404).json({
@@ -43,10 +41,10 @@ const startServer = async () => {
     await connectDatabase();
 
     app.listen(PORT, () => {
-      console.log(`Server running on port ${PORT}`);
+      console.log(`Profile service running on port ${PORT}`);
     });
   } catch (error) {
-    console.error("Failed to start server:", error.message);
+    console.error("Failed to start profile service:", error.message);
     process.exit(1);
   }
 };

@@ -6,18 +6,13 @@ This auth service now follows a more structured `app/` layout:
 - `app/config/database.js`: MongoDB connection
 - `app/controllers/auth.controller.js`: HTTP controller
 - `app/controllers/user.controller.js`: user self-service controller
-- `app/controllers/profile.controller.js`: profile controller
 - `app/models/auth.model.js`: mongoose model
-- `app/models/profile.model.js`: profile model
 - `app/middlewares/auth.middleware.js`: JWT auth and role checks
 - `app/schemas/auth.schema.js`: request validation
-- `app/schemas/profile.schema.js`: profile validation
 - `app/schemas/user.schema.js`: user update validation
 - `app/services/auth.service.js`: JWT and password logic
-- `app/services/profile.service.js`: profile business logic
 - `app/services/user.service.js`: current user management
 - `app/routes/auth.routes.js`: API routes
-- `app/routes/profile.routes.js`: profile routes
 - `app/routes/user.routes.js`: user routes
 - `app/scripts/seed-user.js`: seed test user
 - `app/scripts/seed-admin.js`: seed admin user
@@ -96,104 +91,12 @@ Response:
 }
 ```
 
-## Create Profile API
+## Profile APIs
 
-`POST /profiles`
+Profile features were moved to the separate service:
 
-Header:
-
-```text
-Authorization: Bearer your_jwt_token
-```
-
-Body example:
-
-```json
-{
-  "professional_title": "Backend Developer",
-  "summary": "Node.js and AI enthusiast",
-  "phone": "+212600000000",
-  "address": "Casablanca, Morocco",
-  "linkedin_url": "https://linkedin.com/in/example",
-  "github_url": "https://github.com/example",
-  "portfolio_url": "https://example.com"
-}
-```
-
-Response:
-
-```json
-{
-  "message": "Profile created successfully",
-  "profile": {
-    "id": "mongo_object_id",
-    "user_id": "mongo_user_id",
-    "professional_title": "Backend Developer",
-    "summary": "Node.js and AI enthusiast",
-    "phone": "+212600000000",
-    "address": "Casablanca, Morocco",
-    "linkedin_url": "https://linkedin.com/in/example",
-    "github_url": "https://github.com/example",
-    "portfolio_url": "https://example.com",
-    "created_at": "date",
-    "updated_at": "date"
-  }
-}
-```
-
-`GET /profiles/me`
-
-Header:
-
-```text
-Authorization: Bearer your_jwt_token
-```
-
-`PUT /profiles/me`
-
-Header:
-
-```text
-Authorization: Bearer your_jwt_token
-```
-
-Body example:
-
-```json
-{
-  "professional_title": "Senior Backend Developer",
-  "summary": "Updated summary",
-  "phone": "+212611111111",
-  "address": "Rabat, Morocco",
-  "linkedin_url": "https://linkedin.com/in/updated",
-  "github_url": "https://github.com/updated",
-  "portfolio_url": "https://updated-example.com"
-}
-```
-
-`DELETE /profiles/me`
-
-Header:
-
-```text
-Authorization: Bearer your_jwt_token
-```
-
-## Admin Profile Management APIs
-
-All admin profile routes require:
-
-```text
-Authorization: Bearer admin_jwt_token
-```
-
-`GET /profiles`
-
-Returns all profiles.
-
-`GET /profiles/:id`
-
-Returns one profile by profile id.
+- `Backend/profile_service`
+- default local URL: `http://localhost:5001`
 
 ## User Self-Service APIs
 
