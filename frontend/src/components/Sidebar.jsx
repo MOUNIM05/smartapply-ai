@@ -1,8 +1,9 @@
 import { NavLink } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import { LayoutDashboard, User2, Briefcase, Sparkles, FileText, LogOut } from 'lucide-react'
+import { clearSession, getCurrentUserRole } from '../services/api'
 
-const navItems = [
+const userNavItems = [
   { to: '/dashboard', label: 'Dashboard', Icon: LayoutDashboard },
   { to: '/profile', label: 'Profile', Icon: User2 },
   { to: '/experiences', label: 'Experiences', Icon: Briefcase },
@@ -10,8 +11,20 @@ const navItems = [
   { to: '/generate', label: 'Generate CV', Icon: Sparkles }
 ]
 
+const adminNavItems = [
+  { to: '/dashboard', label: 'Dashboard', Icon: LayoutDashboard },
+  { to: '/profile', label: 'Profiles', Icon: User2 },
+  { to: '/jobs', label: 'Jobs', Icon: FileText }
+]
+
 function Sidebar({ collapsed = false, onToggle, onNavigate }) {
   const width = collapsed ? 76 : 276
+  const navItems = getCurrentUserRole() === 'admin' ? adminNavItems : userNavItems
+
+  const handleLogout = () => {
+    clearSession()
+    window.location.href = '/login'
+  }
 
   return (
     <motion.div
@@ -33,7 +46,7 @@ function Sidebar({ collapsed = false, onToggle, onNavigate }) {
           className="ml-auto h-9 w-9 rounded-lg border border-white/10 text-slate-200 hover:bg-white/10 transition"
           onClick={onToggle}
         >
-          {collapsed ? '›' : '‹'}
+          {collapsed ? '>' : '<'}
         </button>
       </div>
 
@@ -67,7 +80,7 @@ function Sidebar({ collapsed = false, onToggle, onNavigate }) {
             <span className="text-sm font-semibold">Upgrade to Pro</span>
           </button>
         )}
-        <button className="flex items-center gap-3 px-3 py-2 rounded-xl hover:bg-white/10 transition text-slate-300">
+        <button onClick={handleLogout} className="flex items-center gap-3 px-3 py-2 rounded-xl hover:bg-white/10 transition text-slate-300">
           <LogOut size={18} />
           {!collapsed && <span className="text-sm">Logout</span>}
         </button>

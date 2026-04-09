@@ -5,7 +5,10 @@ const {
   getProfileById,
   listProfiles,
   updateCurrentProfile,
-  deleteCurrentProfile
+  deleteCurrentProfile,
+  createProfileByAdmin,
+  updateProfileById,
+  deleteProfileById
 } = require("../services/profile.service");
 
 const createProfileController = async (req, res, next) => {
@@ -64,11 +67,43 @@ const deleteMyProfileController = async (req, res, next) => {
   }
 };
 
+const createProfileByAdminController = async (req, res, next) => {
+  try {
+    const payload = validateCreateProfileRequest(req.body);
+    const result = await createProfileByAdmin(req.body.user_id, payload);
+    res.status(201).json(result);
+  } catch (error) {
+    next(error);
+  }
+};
+
+const updateProfileByIdController = async (req, res, next) => {
+  try {
+    const updates = validateUpdateProfileRequest(req.body);
+    const result = await updateProfileById(req.params.id, updates);
+    res.status(200).json(result);
+  } catch (error) {
+    next(error);
+  }
+};
+
+const deleteProfileByIdController = async (req, res, next) => {
+  try {
+    const result = await deleteProfileById(req.params.id);
+    res.status(200).json(result);
+  } catch (error) {
+    next(error);
+  }
+};
+
 module.exports = {
   createProfileController,
   getMyProfileController,
   listProfilesController,
   getProfileByIdController,
   updateMyProfileController,
-  deleteMyProfileController
+  deleteMyProfileController,
+  createProfileByAdminController,
+  updateProfileByIdController,
+  deleteProfileByIdController
 };

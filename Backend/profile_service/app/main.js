@@ -6,6 +6,10 @@ const morgan = require("morgan");
 
 const connectDatabase = require("./config/database");
 const profileRoutes = require("./routes/profile.routes");
+const experienceRoutes = require("./routes/experience.routes");
+const educationRoutes = require("./routes/education.routes");
+const skillRoutes = require("./routes/skill.routes");
+const languageRoutes = require("./routes/language.routes");
 
 const app = express();
 const PORT = process.env.PORT || 5001;
@@ -21,6 +25,10 @@ app.get("/", (req, res) => {
 });
 
 app.use(profileRoutes);
+app.use(experienceRoutes);
+app.use(educationRoutes);
+app.use(skillRoutes);
+app.use(languageRoutes);
 
 app.use((req, res) => {
   res.status(404).json({

@@ -5,6 +5,7 @@ import Login from './pages/Login'
 import Register from './pages/Register'
 import DashboardLayout from './layouts/DashboardLayout'
 import Dashboard from './pages/Dashboard'
+import Account from './pages/Account'
 import Profile from './pages/Profile'
 import Experiences from './pages/Experiences'
 import Jobs from './pages/Jobs'
@@ -17,10 +18,12 @@ function AnimatedRoutes() {
 		<AnimatePresence mode="wait">
 			<Routes location={location} key={location.pathname}>
 				<Route path="/" element={<Login />} />
+				<Route path="/login" element={<Login />} />
 				<Route path="/register" element={<Register />} />
 
 				<Route path="/" element={<DashboardLayout />}>
 					<Route path="dashboard" element={<Dashboard />} />
+					<Route path="account" element={<Account />} />
 					<Route path="profile" element={<Profile />} />
 					<Route path="experiences" element={<Experiences />} />
 					<Route path="jobs" element={<Jobs />} />

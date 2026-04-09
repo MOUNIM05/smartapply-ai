@@ -3,7 +3,7 @@ import { Link, useNavigate } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import { Mail, Lock, ArrowRight } from 'lucide-react'
 import FormInput from '../components/FormInput'
-import api from '../services/api'
+import { authApi, setCurrentUser } from '../services/api'
 
 const blobProps = {
   transition: { duration: 10, repeat: Infinity, repeatType: 'mirror', ease: 'easeInOut' }
@@ -20,13 +20,20 @@ export default function Login() {
     e.preventDefault()
     setLoading(true)
     setError('')
+
     try {
-      const { data } = await api.post('/auth/login', { email, password })
-      const token = data?.token || data?.access_token
+      const { data } = await authApi.post('/auth/login', { email, password })
+      const token = data?.access_token || data?.token
+
       if (token) {
         localStorage.setItem('access_token', token)
       }
-      if (data?.user?._id) localStorage.setItem('user_id', data.user._id)
+
+      const meResponse = await authApi.get('/users/me')
+      if (meResponse.data?.user) {
+        setCurrentUser(meResponse.data.user)
+      }
+
       navigate('/dashboard')
     } catch (err) {
       setError(err.response?.data?.message || 'Login failed. Please try again.')
@@ -78,7 +85,7 @@ export default function Login() {
         <div className="relative z-10 flex items-center gap-4 text-sm text-slate-200">
           <div className="h-10 w-10 rounded-full bg-white/10 border border-white/20" />
           <div>
-            <p className="font-semibold text-white">Trusted by students & grads</p>
+            <p className="font-semibold text-white">Trusted by students and grads</p>
             <p className="text-slate-200/80">Built for fast-paced applications.</p>
           </div>
         </div>
@@ -104,8 +111,8 @@ export default function Login() {
             </div>
 
             <form onSubmit={handleSubmit} className="space-y-4">
-              <FormInput label="Email" icon={Mail} type="email" placeholder="you@example.com" value={email} onChange={(e)=>setEmail(e.target.value)} required />
-              <FormInput label="Password" icon={Lock} type="password" placeholder="••••••••" value={password} onChange={(e)=>setPassword(e.target.value)} required />
+              <FormInput label="Email" icon={Mail} type="email" placeholder="you@example.com" value={email} onChange={(e) => setEmail(e.target.value)} required />
+              <FormInput label="Password" icon={Lock} type="password" placeholder="********" value={password} onChange={(e) => setPassword(e.target.value)} required />
 
               <div className="flex items-center justify-between text-sm text-slate-500">
                 <label className="inline-flex items-center gap-2">
@@ -124,7 +131,7 @@ export default function Login() {
                 className="w-full flex items-center justify-center gap-2 bg-gradient-to-r from-primary to-indigo-500 text-white py-3 rounded-xl font-semibold shadow-soft hover:shadow-lg transition"
                 disabled={loading}
               >
-                {loading ? 'Signing in…' : 'Sign in'}
+                {loading ? 'Signing in...' : 'Sign in'}
                 <ArrowRight size={16} />
               </motion.button>
             </form>

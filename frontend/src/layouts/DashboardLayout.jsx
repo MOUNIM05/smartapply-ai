@@ -1,10 +1,9 @@
-import { useState } from 'react'
-import { Outlet } from 'react-router-dom'
+import { useEffect, useState } from 'react'
+import { Outlet, useNavigate } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import Sidebar from '../components/Sidebar'
 import Navbar from '../components/Navbar'
-import { useEffect } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { authApi, clearSession, setCurrentUser } from '../services/api'
 
 export default function DashboardLayout() {
   const [sidebarOpen, setSidebarOpen] = useState(true)
@@ -13,7 +12,24 @@ export default function DashboardLayout() {
 
   useEffect(() => {
     const token = localStorage.getItem('access_token')
-    if (!token) navigate('/')
+    if (!token) {
+      navigate('/login')
+      return
+    }
+
+    const bootstrapUser = async () => {
+      try {
+        const { data } = await authApi.get('/users/me')
+        if (data?.user) {
+          setCurrentUser(data.user)
+        }
+      } catch (error) {
+        clearSession()
+        navigate('/login')
+      }
+    }
+
+    bootstrapUser()
   }, [navigate])
 
   const handleNavigate = () => {

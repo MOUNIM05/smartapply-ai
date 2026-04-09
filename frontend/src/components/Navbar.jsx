@@ -1,26 +1,24 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import api from '../services/api'
+import { authApi, clearSession, getCurrentUserName } from '../services/api'
 import { Search, Bell, Menu, LogOut, Loader2 } from 'lucide-react'
 
 function Navbar({ onToggleSidebar }) {
   const [q, setQ] = useState('')
   const [loggingOut, setLoggingOut] = useState(false)
   const navigate = useNavigate()
+  const currentUserName = getCurrentUserName()
 
   const handleLogout = async () => {
     if (loggingOut) return
     setLoggingOut(true)
-    const token = localStorage.getItem('access_token') || localStorage.getItem('token')
+
     try {
-      await api.post('/auth/logout', {})
+      await authApi.post('/auth/logout')
     } catch (e) {
-      // ignore errors for frontend-only flow
+      // keep frontend logout resilient
     } finally {
-      localStorage.removeItem('access_token')
-      localStorage.removeItem('refresh_token')
-      localStorage.removeItem('token')
-      localStorage.removeItem('user_id')
+      clearSession()
       setLoggingOut(false)
       navigate('/login')
     }
@@ -63,20 +61,24 @@ function Navbar({ onToggleSidebar }) {
           <button className="h-10 w-10 rounded-xl border border-slate-200 text-slate-600 hover:border-primary/40 hover:text-primary transition flex items-center justify-center">
             <Bell size={18} />
           </button>
-          <div className="flex items-center gap-3 pl-2">
+          <button
+            type="button"
+            onClick={() => navigate('/account')}
+            className="flex items-center gap-3 pl-2 rounded-xl hover:bg-slate-50 transition px-2 py-1"
+          >
             <div className="text-right hidden sm:block">
-              <p className="text-sm font-semibold text-slate-800">Jane Cooper</p>
-              <p className="text-xs text-slate-500">Product Lead</p>
+              <p className="text-sm font-semibold text-slate-800">{currentUserName}</p>
+              <p className="text-xs text-slate-500">SmartApply AI</p>
             </div>
             <div className="h-10 w-10 rounded-full bg-gradient-to-br from-primary to-indigo-300 ring-2 ring-indigo-100" />
-          </div>
+          </button>
           <button
             onClick={handleLogout}
             disabled={loggingOut}
             className="inline-flex items-center gap-2 h-10 px-3 rounded-xl bg-primary text-white text-sm font-semibold shadow-soft hover:shadow-lg transition disabled:opacity-60"
           >
             {loggingOut ? <Loader2 className="animate-spin" size={16} /> : <LogOut size={16} />}
-            <span className="hidden sm:inline">{loggingOut ? 'Logging out…' : 'Logout'}</span>
+            <span className="hidden sm:inline">{loggingOut ? 'Logging out...' : 'Logout'}</span>
           </button>
         </div>
       </div>

@@ -3,20 +3,21 @@ import { useNavigate, Link } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import { User, Mail, Lock, ArrowRight } from 'lucide-react'
 import FormInput from '../components/FormInput'
-import api from '../services/api'
+import { authApi } from '../services/api'
 
 export default function Register() {
   const navigate = useNavigate()
   const [loading, setLoading] = useState(false)
-  const [form, setForm] = useState({ firstName: '', lastName: '', email: '', password: '' })
+  const [form, setForm] = useState({ first_name: '', last_name: '', email: '', password: '' })
   const [error, setError] = useState('')
 
   const handleSubmit = (e) => {
     e.preventDefault()
     setLoading(true)
     setError('')
-    api.post('/auth/register', form)
-      .then(() => navigate('/'))
+
+    authApi.post('/auth/register', form)
+      .then(() => navigate('/login'))
       .catch((err) => setError(err.response?.data?.message || 'Registration failed.'))
       .finally(() => setLoading(false))
   }
@@ -48,13 +49,6 @@ export default function Register() {
             SmartApply personalizes your CVs, adapts cover letters, and keeps everything synced in one
             delightful workspace.
           </p>
-          <div className="mt-8 flex items-center gap-3 text-sm text-white/90">
-            <div className="h-10 w-10 rounded-full bg-white/15 border border-white/30" />
-            <div>
-              <p className="font-semibold">Students + early career</p>
-              <p>Launch your next application faster than ever.</p>
-            </div>
-          </div>
         </div>
       </div>
 
@@ -73,20 +67,20 @@ export default function Register() {
                 <p className="text-sm text-slate-500 mt-1">No credit card required. 14-day free trial.</p>
               </div>
               <div className="h-10 w-10 rounded-xl bg-primary/10 text-primary flex items-center justify-center font-semibold">
-                🚀
+                AI
               </div>
             </div>
 
             <form onSubmit={handleSubmit} className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <FormInput label="First name" icon={User} name="firstName" value={form.firstName} onChange={(e)=>setForm(f=>({...f,firstName:e.target.value}))} required />
-              <FormInput label="Last name" icon={User} name="lastName" value={form.lastName} onChange={(e)=>setForm(f=>({...f,lastName:e.target.value}))} required />
+              <FormInput label="First name" icon={User} name="first_name" value={form.first_name} onChange={(e) => setForm((f) => ({ ...f, first_name: e.target.value }))} required />
+              <FormInput label="Last name" icon={User} name="last_name" value={form.last_name} onChange={(e) => setForm((f) => ({ ...f, last_name: e.target.value }))} required />
               <FormInput
                 label="Email"
                 icon={Mail}
                 type="email"
                 name="email"
                 value={form.email}
-                onChange={(e)=>setForm(f=>({...f,email:e.target.value}))}
+                onChange={(e) => setForm((f) => ({ ...f, email: e.target.value }))}
                 className="md:col-span-2"
                 required
               />
@@ -95,9 +89,9 @@ export default function Register() {
                 icon={Lock}
                 type="password"
                 name="password"
-                helper="Use at least 8 characters with a number and symbol."
+                helper="Use at least 8 characters if possible."
                 value={form.password}
-                onChange={(e)=>setForm(f=>({...f,password:e.target.value}))}
+                onChange={(e) => setForm((f) => ({ ...f, password: e.target.value }))}
                 required
                 className="md:col-span-2"
               />
@@ -120,7 +114,7 @@ export default function Register() {
                   className="w-full flex items-center justify-center gap-2 bg-gradient-to-r from-primary to-indigo-500 text-white py-3 rounded-xl font-semibold shadow-soft hover:shadow-lg transition"
                   disabled={loading}
                 >
-                  {loading ? 'Creating account…' : 'Create account'}
+                  {loading ? 'Creating account...' : 'Create account'}
                   <ArrowRight size={16} />
                 </motion.button>
               </div>
@@ -128,7 +122,7 @@ export default function Register() {
 
             <p className="text-sm text-center text-slate-500 mt-4">
               Already have an account?{' '}
-              <Link to="/" className="text-primary font-semibold hover:text-indigo-500">
+              <Link to="/login" className="text-primary font-semibold hover:text-indigo-500">
                 Sign in
               </Link>
             </p>
