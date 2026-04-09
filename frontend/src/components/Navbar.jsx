@@ -1,8 +1,30 @@
 import { useState } from 'react'
-import { Search, Bell, Menu, LogOut } from 'lucide-react'
+import { useNavigate } from 'react-router-dom'
+import api from '../services/api'
+import { Search, Bell, Menu, LogOut, Loader2 } from 'lucide-react'
 
 function Navbar({ onToggleSidebar }) {
   const [q, setQ] = useState('')
+  const [loggingOut, setLoggingOut] = useState(false)
+  const navigate = useNavigate()
+
+  const handleLogout = async () => {
+    if (loggingOut) return
+    setLoggingOut(true)
+    const token = localStorage.getItem('access_token') || localStorage.getItem('token')
+    try {
+      await api.post('/auth/logout', {})
+    } catch (e) {
+      // ignore errors for frontend-only flow
+    } finally {
+      localStorage.removeItem('access_token')
+      localStorage.removeItem('refresh_token')
+      localStorage.removeItem('token')
+      localStorage.removeItem('user_id')
+      setLoggingOut(false)
+      navigate('/login')
+    }
+  }
 
   return (
     <header className="sticky top-0 z-10 bg-white/80 backdrop-blur-xl border-b border-slate-100/80">
@@ -48,9 +70,13 @@ function Navbar({ onToggleSidebar }) {
             </div>
             <div className="h-10 w-10 rounded-full bg-gradient-to-br from-primary to-indigo-300 ring-2 ring-indigo-100" />
           </div>
-          <button className="inline-flex items-center gap-2 h-10 px-3 rounded-xl bg-primary text-white text-sm font-semibold shadow-soft hover:shadow-lg transition">
-            <LogOut size={16} />
-            <span className="hidden sm:inline">Logout</span>
+          <button
+            onClick={handleLogout}
+            disabled={loggingOut}
+            className="inline-flex items-center gap-2 h-10 px-3 rounded-xl bg-primary text-white text-sm font-semibold shadow-soft hover:shadow-lg transition disabled:opacity-60"
+          >
+            {loggingOut ? <Loader2 className="animate-spin" size={16} /> : <LogOut size={16} />}
+            <span className="hidden sm:inline">{loggingOut ? 'Logging out…' : 'Logout'}</span>
           </button>
         </div>
       </div>

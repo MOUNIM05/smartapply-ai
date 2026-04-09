@@ -3,10 +3,18 @@ import { Outlet } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import Sidebar from '../components/Sidebar'
 import Navbar from '../components/Navbar'
+import { useEffect } from 'react'
+import { useNavigate } from 'react-router-dom'
 
 export default function DashboardLayout() {
   const [sidebarOpen, setSidebarOpen] = useState(true)
   const isMobile = typeof window !== 'undefined' && window.innerWidth < 1024
+  const navigate = useNavigate()
+
+  useEffect(() => {
+    const token = localStorage.getItem('access_token')
+    if (!token) navigate('/')
+  }, [navigate])
 
   const handleNavigate = () => {
     if (isMobile) setSidebarOpen(false)

@@ -3,18 +3,22 @@ import { useNavigate, Link } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import { User, Mail, Lock, ArrowRight } from 'lucide-react'
 import FormInput from '../components/FormInput'
+import api from '../services/api'
 
 export default function Register() {
   const navigate = useNavigate()
   const [loading, setLoading] = useState(false)
+  const [form, setForm] = useState({ firstName: '', lastName: '', email: '', password: '' })
+  const [error, setError] = useState('')
 
   const handleSubmit = (e) => {
     e.preventDefault()
     setLoading(true)
-    setTimeout(() => {
-      setLoading(false)
-      navigate('/dashboard')
-    }, 950)
+    setError('')
+    api.post('/auth/register', form)
+      .then(() => navigate('/'))
+      .catch((err) => setError(err.response?.data?.message || 'Registration failed.'))
+      .finally(() => setLoading(false))
   }
 
   return (
@@ -74,13 +78,15 @@ export default function Register() {
             </div>
 
             <form onSubmit={handleSubmit} className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <FormInput label="First name" icon={User} name="firstName" required />
-              <FormInput label="Last name" icon={User} name="lastName" required />
+              <FormInput label="First name" icon={User} name="firstName" value={form.firstName} onChange={(e)=>setForm(f=>({...f,firstName:e.target.value}))} required />
+              <FormInput label="Last name" icon={User} name="lastName" value={form.lastName} onChange={(e)=>setForm(f=>({...f,lastName:e.target.value}))} required />
               <FormInput
                 label="Email"
                 icon={Mail}
                 type="email"
                 name="email"
+                value={form.email}
+                onChange={(e)=>setForm(f=>({...f,email:e.target.value}))}
                 className="md:col-span-2"
                 required
               />
@@ -90,9 +96,13 @@ export default function Register() {
                 type="password"
                 name="password"
                 helper="Use at least 8 characters with a number and symbol."
+                value={form.password}
+                onChange={(e)=>setForm(f=>({...f,password:e.target.value}))}
                 required
                 className="md:col-span-2"
               />
+
+              {error && <p className="text-sm text-red-500 md:col-span-2">{error}</p>}
 
               <div className="md:col-span-2 space-y-3">
                 <label className="inline-flex items-start gap-2 text-sm text-slate-600">

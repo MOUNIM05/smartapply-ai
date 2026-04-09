@@ -4,13 +4,13 @@ import { Briefcase, Trash2, Edit3, Plus, GraduationCap, Sparkles, Languages } fr
 import FormInput from '../components/FormInput'
 
 const initialExperiences = [
-  { role: 'Frontend Engineer', company: 'Linear', period: '2023 — Present', summary: 'Built design system + shipping velocity tooling.' },
-  { role: 'Product Designer', company: 'Notion', period: '2022 — 2023', summary: 'Redesigned onboarding; +14% activation.' }
+  { role: 'Frontend Engineer', company: 'Linear', period: '2023 — Present', summary: 'Built design system + shipping velocity tooling.', skills: ['React', 'Design Systems', 'DX'] },
+  { role: 'Product Designer', company: 'Notion', period: '2022 — 2023', summary: 'Redesigned onboarding; +14% activation.', skills: ['UX', 'Prototyping', 'Research'] }
 ]
 
 export default function Experiences() {
   const [experiences, setExperiences] = useState(initialExperiences)
-  const [form, setForm] = useState({ role: '', company: '', period: '', summary: '' })
+  const [form, setForm] = useState({ role: '', company: '', period: '', summary: '', skills: '' })
   const [editingIndex, setEditingIndex] = useState(null)
   const [showForm, setShowForm] = useState(false)
   const [formations, setFormations] = useState([
@@ -32,10 +32,19 @@ export default function Experiences() {
     if (!form.role || !form.company) return
     if (editingIndex !== null) {
       const next = [...experiences]
-      next[editingIndex] = form
+      next[editingIndex] = {
+        ...form,
+        skills: form.skills ? form.skills.split(',').map((s) => s.trim()).filter(Boolean) : []
+      }
       setExperiences(next)
     } else {
-      setExperiences([{ ...form }, ...experiences])
+      setExperiences([
+        {
+          ...form,
+          skills: form.skills ? form.skills.split(',').map((s) => s.trim()).filter(Boolean) : []
+        },
+        ...experiences
+      ])
     }
     resetForm()
     setShowForm(false)
@@ -88,6 +97,13 @@ export default function Experiences() {
                   {exp.company} · {exp.period || 'Add timeframe'}
                 </p>
                 <p className="text-sm text-slate-600 mt-2">{exp.summary || 'Add a short summary.'}</p>
+                <div className="flex flex-wrap gap-2 mt-3">
+                  {(exp.skills && exp.skills.length ? exp.skills : ['Impact', 'Teamwork']).map((s) => (
+                    <span key={s} className="pill bg-primary/10 text-primary">
+                      {s}
+                    </span>
+                  ))}
+                </div>
               </div>
             </div>
             <div className="flex items-center gap-2">
@@ -261,6 +277,12 @@ export default function Experiences() {
                   onChange={(e) => setForm((f) => ({ ...f, summary: e.target.value }))}
                   placeholder="Highlight measurable impact"
                   helper="Keep it concise and numbers-first."
+                />
+                <FormInput
+                  label="Skills (comma separated)"
+                  value={form.skills}
+                  onChange={(e) => setForm((f) => ({ ...f, skills: e.target.value }))}
+                  placeholder="React, UX Writing"
                 />
                 <div className="flex items-center justify-end gap-3 pt-2">
                   <button

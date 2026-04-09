@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Building2, Star, Send, Sparkles, Plus, CheckCircle2 } from 'lucide-react'
+import { Building2, Star, Send, Sparkles, Plus, CheckCircle2, Bookmark } from 'lucide-react'
 import FormInput from '../components/FormInput'
 
 const seedJobs = [
@@ -68,7 +68,15 @@ export default function Jobs() {
                     </p>
                   </div>
                 </div>
-                <div className="pill">{job.status}</div>
+                <div className="flex items-center gap-2">
+                  <span className="pill">{job.status}</span>
+                  <button
+                    className="h-9 w-9 rounded-xl border border-slate-200 text-slate-600 hover:text-primary hover:border-primary/40 transition flex items-center justify-center"
+                    title="Save job"
+                  >
+                    <Bookmark size={16} />
+                  </button>
+                </div>
               </motion.div>
             )
           })}
@@ -92,10 +100,11 @@ export default function Jobs() {
           <div className="flex items-center gap-3">
             <button className="flex-1 bg-primary text-white py-3 rounded-xl font-semibold shadow-soft hover:shadow-lg transition flex items-center justify-center gap-2 disabled:opacity-60" disabled={!selected}>
               <Send size={16} />
-              Send application
+              Apply now
             </button>
-            <button className="flex-1 border border-slate-200 py-3 rounded-xl font-semibold text-slate-700 hover:border-primary/40 hover:text-primary transition disabled:opacity-60" disabled={!selected}>
-              Preview JD
+            <button className="flex-1 border border-slate-200 py-3 rounded-xl font-semibold text-slate-700 hover:border-primary/40 hover:text-primary transition flex items-center justify-center gap-2 disabled:opacity-60" disabled={!selected}>
+              <Bookmark size={16} />
+              Save job
             </button>
           </div>
         </div>

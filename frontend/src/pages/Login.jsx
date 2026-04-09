@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import { Mail, Lock, ArrowRight } from 'lucide-react'
 import FormInput from '../components/FormInput'
+import api from '../services/api'
 
 const blobProps = {
   transition: { duration: 10, repeat: Infinity, repeatType: 'mirror', ease: 'easeInOut' }
@@ -11,14 +12,27 @@ const blobProps = {
 export default function Login() {
   const navigate = useNavigate()
   const [loading, setLoading] = useState(false)
+  const [email, setEmail] = useState('')
+  const [password, setPassword] = useState('')
+  const [error, setError] = useState('')
 
   const handleSubmit = async (e) => {
     e.preventDefault()
     setLoading(true)
-    setTimeout(() => {
-      setLoading(false)
+    setError('')
+    try {
+      const { data } = await api.post('/auth/login', { email, password })
+      const token = data?.token || data?.access_token
+      if (token) {
+        localStorage.setItem('access_token', token)
+      }
+      if (data?.user?._id) localStorage.setItem('user_id', data.user._id)
       navigate('/dashboard')
-    }, 900)
+    } catch (err) {
+      setError(err.response?.data?.message || 'Login failed. Please try again.')
+    } finally {
+      setLoading(false)
+    }
   }
 
   return (
@@ -90,8 +104,8 @@ export default function Login() {
             </div>
 
             <form onSubmit={handleSubmit} className="space-y-4">
-              <FormInput label="Email" icon={Mail} type="email" placeholder="you@example.com" required />
-              <FormInput label="Password" icon={Lock} type="password" placeholder="••••••••" required />
+              <FormInput label="Email" icon={Mail} type="email" placeholder="you@example.com" value={email} onChange={(e)=>setEmail(e.target.value)} required />
+              <FormInput label="Password" icon={Lock} type="password" placeholder="••••••••" value={password} onChange={(e)=>setPassword(e.target.value)} required />
 
               <div className="flex items-center justify-between text-sm text-slate-500">
                 <label className="inline-flex items-center gap-2">
@@ -100,6 +114,8 @@ export default function Login() {
                 </label>
                 <button type="button" className="text-primary font-medium hover:text-indigo-500">Forgot password?</button>
               </div>
+
+              {error && <p className="text-sm text-red-500">{error}</p>}
 
               <motion.button
                 whileHover={{ scale: 1.01 }}

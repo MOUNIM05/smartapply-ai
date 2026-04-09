@@ -9,22 +9,25 @@ export default function GenerateCV() {
   const [loading, setLoading] = useState(false)
   const [action, setAction] = useState('cv')
   const [template, setTemplate] = useState('Aurora')
+  const [generated, setGenerated] = useState(false)
   const actions = [
     { id: 'cv', label: 'Generate CV' },
-    { id: 'cover', label: 'Cover Letter' },
-    { id: 'email', label: 'Follow-up Email' },
-    { id: 'improve', label: 'Improve Text' },
-    { id: 'adapt', label: 'Adapt to Job' }
+    { id: 'motivation', label: 'Generate Motivation Letter' },
+    { id: 'email', label: 'Generate Email' },
+    { id: 'improve', label: 'Improve Content' },
+    { id: 'adapt', label: 'Adapt to Job Offer' }
   ]
   const templates = ['Aurora', 'Minimal', 'Gradient', 'Slate']
 
   const handleGenerate = () => {
     setLoading(true)
+    setGenerated(false)
     setTimeout(() => {
       setResult(
         `Action: ${actions.find((a) => a.id === action)?.label}\nTemplate: ${template}\n\nSummary\n• Led cross-functional pods to launch AI features that improved activation by 12%.\n• Partnered with design to ship a design system in 6 weeks.\n\nExperience\n- Product Manager, Stripe — 2023–Present\n  Drove roadmap for billing APIs; reduced integration time by 30%.\n- Frontend Engineer, Linear — 2021–2023\n  Built real-time collaboration and accessibility upgrades.`
       )
       setLoading(false)
+      setGenerated(true)
     }, 1200)
   }
 
@@ -84,6 +87,11 @@ export default function GenerateCV() {
             {loading ? 'Generating…' : 'Generate with AI'}
           </motion.button>
           {!input && !jd && <p className="text-xs text-slate-500">Add some context to enable generation.</p>}
+          {generated && !loading && (
+            <motion.div initial={{ opacity: 0, y: -4 }} animate={{ opacity: 1, y: 0 }} className="text-sm text-primary flex items-center gap-2">
+              <Sparkles size={14} /> Result ready — you can download or copy now.
+            </motion.div>
+          )}
         </div>
 
         <motion.div
@@ -107,7 +115,19 @@ export default function GenerateCV() {
                 </button>
               </div>
             </div>
-            <div className="rounded-xl bg-white/5 border border-white/10 p-4 min-h-[260px]">
+            <div className="rounded-xl bg-white/5 border border-white/10 p-4 min-h-[260px] relative overflow-hidden">
+              {loading && (
+                <motion.div
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center"
+                >
+                  <div className="flex items-center gap-3 text-sm text-slate-100">
+                    <Loader2 className="animate-spin" size={18} />
+                    Generating…
+                  </div>
+                </motion.div>
+              )}
               {loading && (
                 <div className="flex items-center gap-3 text-sm text-slate-200">
                   <Loader2 className="animate-spin" size={16} />
@@ -115,9 +135,13 @@ export default function GenerateCV() {
                 </div>
               )}
               {!loading && result && (
-                <pre className="whitespace-pre-wrap text-sm leading-relaxed text-slate-100">
+                <motion.pre
+                  initial={{ opacity: 0, y: 6 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="whitespace-pre-wrap text-sm leading-relaxed text-slate-100"
+                >
                   {result}
-                </pre>
+                </motion.pre>
               )}
               {!loading && !result && (
                 <div className="text-sm text-slate-300 flex items-center gap-2">
