@@ -1,0 +1,16 @@
+# Dependances locales: elles sont reinstallees dans l'image Docker.
+node_modules
+
+# Build local du frontend.
+dist
+
+# Dossiers Git inutiles dans le contexte Docker.
+.git
+.github
+
+# Variables locales sensibles.
+.env
+.env.*
+
+# Logs npm.
+npm-debug.log
