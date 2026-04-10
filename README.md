@@ -14,8 +14,8 @@ Services backend:
 - `auth_service`: authentification, utilisateurs et roles.
 - `profile_service`: profils, experiences, formations, competences et langues.
 - `job_service`: offres d'emploi et candidatures.
-- `ai_service`: demandes et reponses IA.
-- `document_service`: generation de CV, lettres de motivation, emails et PDF.
+- `ai_service`: generation et adaptation de contenu texte a partir des prompts utilisateur.
+- `document_service`: generation et export des CV, lettres de motivation, emails et PDF.
 
 Services Docker:
 
@@ -148,6 +148,28 @@ Lint frontend:
 ```bash
 npm run lint
 ```
+
+## Generation de documents
+
+La page `Generate CV` utilise maintenant un flux en deux etapes:
+
+1. `ai_service` genere un brouillon texte a partir du contexte saisi par l'utilisateur.
+2. `document_service` transforme ce contenu en document PDF telechargeable.
+
+Comportement par action:
+
+- `Generate CV`: utilise l'IA pour preparer le contenu, puis cree un PDF via `document_service`.
+- `Generate Motivation Letter`: utilise l'IA pour preparer la lettre, puis cree un PDF via `document_service`.
+- `Generate Email`: utilise l'IA pour preparer le message, puis cree un PDF via `document_service`.
+- `Improve Content`: reste une generation texte via `ai_service`.
+- `Adapt to Job Offer`: reste une generation texte via `ai_service`.
+
+Services appeles par le frontend:
+
+- `ai_service`: `http://localhost:5003`
+- `document_service`: `http://localhost:5004`
+
+Le resultat texte reste visible dans l'interface, et un fichier PDF est telecharge automatiquement pour les trois actions documentaires.
 
 ## CI/CD
 
