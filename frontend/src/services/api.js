@@ -16,6 +16,10 @@ const aiApi = axios.create({
   baseURL: 'http://localhost:5003'
 })
 
+const documentApi = axios.create({
+  baseURL: 'http://localhost:5004'
+})
+
 const clearSession = () => {
   localStorage.removeItem('access_token')
   localStorage.removeItem('refresh_token')
@@ -62,10 +66,10 @@ const handleAuthError = (err) => {
   return Promise.reject(err)
 }
 
-;[authApi, profileApi, jobApi, aiApi].forEach((client) => {
+;[authApi, profileApi, jobApi, aiApi, documentApi].forEach((client) => {
   client.interceptors.request.use(attachAuthHeader)
   client.interceptors.response.use((res) => res, handleAuthError)
 })
 
-export { authApi, profileApi, jobApi, aiApi, clearSession, setCurrentUser, getCurrentUser, getCurrentUserRole, getCurrentUserName }
+export { authApi, profileApi, jobApi, aiApi, documentApi, clearSession, setCurrentUser, getCurrentUser, getCurrentUserRole, getCurrentUserName }
 export default authApi

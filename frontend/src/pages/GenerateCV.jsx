@@ -1,9 +1,10 @@
 import { useMemo, useState } from 'react'
 import { motion } from 'framer-motion'
 import { Sparkles, Loader2, Copy, Download, FileText } from 'lucide-react'
-import { aiApi } from '../services/api'
+import { aiApi, documentApi, getCurrentUser } from '../services/api'
 
 export default function GenerateCV() {
+  const currentUser = getCurrentUser()
   const [input, setInput] = useState('')
   const [jd, setJd] = useState('')
   const [result, setResult] = useState('')
@@ -35,25 +36,86 @@ export default function GenerateCV() {
     return map[action] || 'other'
   }, [action])
 
+  const downloadBlob = (blob, filename) => {
+    const url = URL.createObjectURL(blob)
+    const link = document.createElement('a')
+    link.href = url
+    link.download = filename
+    link.click()
+    URL.revokeObjectURL(url)
+  }
+
+  const buildSignature = () => {
+    const fullName = [currentUser?.first_name, currentUser?.last_name].filter(Boolean).join(' ')
+    return fullName || currentUser?.email || 'SmartApply AI User'
+  }
+
+  const generateDraftWithAI = async () => {
+    const prompt = [jd, input].filter(Boolean).join('\n\n')
+    const { data } = await aiApi.post('/ai-requests', {
+      prompt,
+      requestType,
+      contextData: {
+        template,
+        jobContext: jd,
+        source: 'frontend-generate-page'
+      }
+    })
+
+    return data?.response?.rawOutput || ''
+  }
+
+  const createPdfDocument = async (endpoint, payload, filenamePrefix) => {
+    const response = await documentApi.post(endpoint, payload, {
+      responseType: 'blob'
+    })
+
+    const documentId = response.headers['x-document-id'] || 'generated'
+    downloadBlob(response.data, `${filenamePrefix}-${documentId}.pdf`)
+  }
+
   const handleGenerate = async () => {
     setLoading(true)
     setGenerated(false)
     setError('')
 
     try {
-      const prompt = [jd, input].filter(Boolean).join('\n\n')
-      const { data } = await aiApi.post('/ai-requests', {
-        prompt,
-        requestType,
-        contextData: {
-          template,
-          jobContext: jd,
-          source: 'frontend-generate-page'
-        }
-      })
-
-      setResult(data?.response?.rawOutput || '')
+      const aiOutput = await generateDraftWithAI()
+      setResult(aiOutput)
       setGenerated(true)
+
+      if (action === 'cv') {
+        await createPdfDocument('/api/documents/cv', {
+          title: `CV - ${jd || 'Candidate'} - ${template}`,
+          fullName: [currentUser?.first_name, currentUser?.last_name].filter(Boolean).join(' '),
+          email: currentUser?.email || '',
+          summary: aiOutput || input,
+          skills: input
+            .split(/[\n,]/)
+            .map((item) => item.trim())
+            .filter(Boolean),
+          targetPosition: jd,
+          jobDescription: input
+        }, 'cv')
+      } else if (action === 'motivation') {
+        await createPdfDocument('/api/documents/motivation-letter', {
+          title: `Motivation Letter - ${jd || 'Opportunity'}`,
+          position: jd,
+          recipientCompany: jd,
+          body: aiOutput || input,
+          background: input,
+          signature: buildSignature()
+        }, 'motivation-letter')
+      } else if (action === 'email') {
+        await createPdfDocument('/api/documents/email', {
+          title: `Application Email - ${jd || 'Opportunity'}`,
+          subject: `Application for ${jd || 'your opportunity'}`,
+          position: jd,
+          intro: input,
+          body: aiOutput || input,
+          signature: buildSignature()
+        }, 'application-email')
+      }
     } catch (err) {
       setError(err.response?.data?.message || 'Failed to generate content.')
       setResult('')
