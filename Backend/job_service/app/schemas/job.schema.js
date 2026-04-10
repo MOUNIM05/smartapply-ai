@@ -1,3 +1,7 @@
+﻿/**
+ * Schema de validation - job.schema.js
+ * Decrit et valide les donnees recues avant leur traitement par les services.
+ */
 const validateCreateJobOfferRequest = (payload) => {
   const jobTitle = payload?.jobTitle?.trim();
   const company = payload?.company?.trim();
@@ -48,3 +52,4 @@ module.exports = {
   validateCreateJobOfferRequest,
   validateCreateApplicationRequest
 };
+

@@ -1,3 +1,7 @@
+﻿/**
+ * Modele Mongoose - ai-generation-request.model.js
+ * Definit la structure des documents stockes dans MongoDB et leurs options.
+ */
 const mongoose = require("mongoose");
 
 const aiGenerationRequestSchema = new mongoose.Schema(
@@ -37,3 +41,4 @@ const AIGenerationRequest = mongoose.model("AIGenerationRequest", aiGenerationRe
 module.exports = {
   AIGenerationRequest
 };
+

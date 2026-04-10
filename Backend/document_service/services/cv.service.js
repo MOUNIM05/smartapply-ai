@@ -1,3 +1,7 @@
+﻿/**
+ * Couche service - cv.service.js
+ * Contient la logique metier et centralise les appels aux modeles MongoDB.
+ */
 import CV from "../models/cv.model.js";
 import { getCVTemplateById, getFallbackCVTemplate } from "./cv-template.service.js";
 
@@ -32,3 +36,4 @@ export const updateCV = async (id, updateData) => {
 export const deleteCV = async (id) => {
   return await CV.findByIdAndDelete(id);
 };
+

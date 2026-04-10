@@ -1,3 +1,7 @@
+﻿/**
+ * Modele Mongoose - application-email.model.js
+ * Definit la structure des documents stockes dans MongoDB et leurs options.
+ */
 import mongoose from "mongoose";
 import {
   GeneratedDocumentSchema,
@@ -37,3 +41,4 @@ applyGeneratedDocumentBehavior(applicationEmailSchema);
 const ApplicationEmail = mongoose.model("ApplicationEmail", applicationEmailSchema);
 
 export default ApplicationEmail;
+

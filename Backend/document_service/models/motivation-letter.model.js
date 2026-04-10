@@ -1,3 +1,7 @@
+﻿/**
+ * Modele Mongoose - motivation-letter.model.js
+ * Definit la structure des documents stockes dans MongoDB et leurs options.
+ */
 import mongoose from "mongoose";
 import {
   GeneratedDocumentSchema,
@@ -47,3 +51,4 @@ applyGeneratedDocumentBehavior(motivationLetterSchema);
 const MotivationLetter = mongoose.model("MotivationLetter", motivationLetterSchema);
 
 export default MotivationLetter;
+

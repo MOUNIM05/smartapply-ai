@@ -1,3 +1,7 @@
+﻿/**
+ * Couche service - ai.service.js
+ * Contient la logique metier et centralise les appels aux modeles MongoDB.
+ */
 const { AIModel } = require("../models/ai-model.model");
 const { AIGenerationRequest } = require("../models/ai-generation-request.model");
 const { AIGenerationResponse } = require("../models/ai-generation-response.model");
@@ -285,3 +289,4 @@ module.exports = {
   listAIGenerationResponses,
   getAIGenerationResponseById
 };
+

@@ -1,3 +1,7 @@
+﻿/**
+ * Couche service - language.service.js
+ * Contient la logique metier et centralise les appels aux modeles MongoDB.
+ */
 const { Profile } = require("../models/profile.model");
 const { Language } = require("../models/language.model");
 
@@ -93,3 +97,4 @@ module.exports = {
   updateLanguage,
   deleteLanguage
 };
+

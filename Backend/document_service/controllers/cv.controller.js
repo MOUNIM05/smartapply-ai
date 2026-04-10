@@ -1,3 +1,7 @@
+﻿/**
+ * Controleur HTTP - cv.controller.js
+ * Recoit les requetes Express, appelle la couche service et renvoie les reponses JSON.
+ */
 import { createCV, getAllCVs, getCVById } from "../services/cv.service.js";
 import { streamPDFToResponse } from "../services/pdf.service.js";
 
@@ -38,3 +42,4 @@ export const exportCVPDFController = async (req, res, next) => {
     next(error);
   }
 };
+

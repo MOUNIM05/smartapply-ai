@@ -1,3 +1,7 @@
+﻿/**
+ * Modele Mongoose - job-offer.model.js
+ * Definit la structure des documents stockes dans MongoDB et leurs options.
+ */
 const mongoose = require("mongoose");
 
 const jobOfferSchema = new mongoose.Schema(
@@ -48,3 +52,4 @@ const JobOffer = mongoose.models.JobOffer || mongoose.model("JobOffer", jobOffer
 module.exports = {
   JobOffer
 };
+

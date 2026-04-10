@@ -1,3 +1,7 @@
+﻿/**
+ * Modele Mongoose - application.model.js
+ * Definit la structure des documents stockes dans MongoDB et leurs options.
+ */
 const mongoose = require("mongoose");
 
 const applicationSchema = new mongoose.Schema(
@@ -32,3 +36,4 @@ const Application = mongoose.models.Application || mongoose.model("Application",
 module.exports = {
   Application
 };
+

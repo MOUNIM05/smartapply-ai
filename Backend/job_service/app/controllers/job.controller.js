@@ -1,3 +1,7 @@
+﻿/**
+ * Controleur HTTP - job.controller.js
+ * Recoit les requetes Express, appelle la couche service et renvoie les reponses JSON.
+ */
 const {
   validateCreateApplicationRequest,
   validateCreateJobOfferRequest
@@ -75,3 +79,4 @@ module.exports = {
   listApplicationsController,
   getApplicationByIdController
 };
+

@@ -1,3 +1,7 @@
+﻿/**
+ * Controleur HTTP - skill.controller.js
+ * Recoit les requetes Express, appelle la couche service et renvoie les reponses JSON.
+ */
 const {
   validateCreateSkillRequest,
   validateUpdateSkillRequest
@@ -53,3 +57,4 @@ module.exports = {
   updateSkillController,
   deleteSkillController
 };
+

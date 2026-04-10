@@ -1,3 +1,7 @@
+﻿/**
+ * Schema de validation - experience.schema.js
+ * Decrit et valide les donnees recues avant leur traitement par les services.
+ */
 const normalizeSkills = (skills) => {
   if (!Array.isArray(skills)) {
     return [];
@@ -78,3 +82,4 @@ module.exports = {
   validateCreateExperienceRequest,
   validateUpdateExperienceRequest
 };
+

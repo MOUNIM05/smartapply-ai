@@ -1,3 +1,7 @@
+﻿/**
+ * Couche service - auth.service.js
+ * Contient la logique metier et centralise les appels aux modeles MongoDB.
+ */
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 
@@ -83,3 +87,4 @@ module.exports = {
   logout,
   hashPassword
 };
+

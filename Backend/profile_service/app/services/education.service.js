@@ -1,3 +1,7 @@
+﻿/**
+ * Couche service - education.service.js
+ * Contient la logique metier et centralise les appels aux modeles MongoDB.
+ */
 const { Profile } = require("../models/profile.model");
 const { Education } = require("../models/education.model");
 
@@ -94,3 +98,4 @@ module.exports = {
   updateEducation,
   deleteEducation
 };
+

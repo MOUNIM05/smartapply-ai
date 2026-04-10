@@ -1,3 +1,7 @@
+﻿/**
+ * Modele Mongoose - experience.model.js
+ * Definit la structure des documents stockes dans MongoDB et leurs options.
+ */
 const mongoose = require("mongoose");
 
 const experienceSchema = new mongoose.Schema(
@@ -48,3 +52,4 @@ const Experience =
 module.exports = {
   Experience
 };
+

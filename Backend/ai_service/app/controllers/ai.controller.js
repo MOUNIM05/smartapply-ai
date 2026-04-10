@@ -1,3 +1,7 @@
+﻿/**
+ * Controleur HTTP - ai.controller.js
+ * Recoit les requetes Express, appelle la couche service et renvoie les reponses JSON.
+ */
 const {
   validateCreateAIModelRequest,
   validateCreateAIGenerationRequest,
@@ -110,3 +114,4 @@ module.exports = {
   listAIGenerationResponsesController,
   getAIGenerationResponseByIdController
 };
+

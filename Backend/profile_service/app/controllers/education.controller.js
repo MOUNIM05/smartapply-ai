@@ -1,3 +1,7 @@
+﻿/**
+ * Controleur HTTP - education.controller.js
+ * Recoit les requetes Express, appelle la couche service et renvoie les reponses JSON.
+ */
 const {
   validateCreateEducationRequest,
   validateUpdateEducationRequest
@@ -53,3 +57,4 @@ module.exports = {
   updateEducationController,
   deleteEducationController
 };
+

@@ -1,3 +1,7 @@
+﻿/**
+ * Couche service - application-email.service.js
+ * Contient la logique metier et centralise les appels aux modeles MongoDB.
+ */
 import ApplicationEmail from "../models/application-email.model.js";
 
 export const createApplicationEmail = async (emailData) => {
@@ -22,3 +26,4 @@ export const updateApplicationEmail = async (id, updateData) => {
 export const deleteApplicationEmail = async (id) => {
   return await ApplicationEmail.findByIdAndDelete(id);
 };
+

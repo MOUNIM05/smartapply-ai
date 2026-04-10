@@ -1,3 +1,7 @@
+﻿/**
+ * Modele Mongoose - generatedDocument.model.js
+ * Definit la structure des documents stockes dans MongoDB et leurs options.
+ */
 import { randomUUID } from "crypto";
 import { generatePDF } from "../services/pdf.service.js";
 
@@ -55,3 +59,4 @@ export const applyGeneratedDocumentBehavior = (schema) => {
     return generatePDF(this.toObject());
   });
 };
+

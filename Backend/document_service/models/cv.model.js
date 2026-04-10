@@ -1,3 +1,7 @@
+﻿/**
+ * Modele Mongoose - cv.model.js
+ * Definit la structure des documents stockes dans MongoDB et leurs options.
+ */
 import mongoose from "mongoose";
 import {
   GeneratedDocumentSchema,
@@ -101,3 +105,4 @@ applyGeneratedDocumentBehavior(cvSchema);
 const CV = mongoose.model("CV", cvSchema);
 
 export default CV;
+

@@ -1,3 +1,7 @@
+﻿/**
+ * Couche service - user.service.js
+ * Contient la logique metier et centralise les appels aux modeles MongoDB.
+ */
 const { User } = require("../models/auth.model");
 const { hashPassword } = require("./auth.service");
 
@@ -180,3 +184,4 @@ module.exports = {
   updateUserByAdmin,
   deleteUserByAdmin
 };
+

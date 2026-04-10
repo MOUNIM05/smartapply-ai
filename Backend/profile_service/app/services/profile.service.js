@@ -1,3 +1,7 @@
+﻿/**
+ * Couche service - profile.service.js
+ * Contient la logique metier et centralise les appels aux modeles MongoDB.
+ */
 const { User } = require("../models/user.model");
 const { Profile } = require("../models/profile.model");
 
@@ -232,3 +236,4 @@ module.exports = {
   updateProfileById,
   deleteProfileById
 };
+

@@ -1,3 +1,7 @@
+﻿/**
+ * Couche service - skill.service.js
+ * Contient la logique metier et centralise les appels aux modeles MongoDB.
+ */
 const { Profile } = require("../models/profile.model");
 const { Skill } = require("../models/skill.model");
 
@@ -89,3 +93,4 @@ module.exports = {
   updateSkill,
   deleteSkill
 };
+

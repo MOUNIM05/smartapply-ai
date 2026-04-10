@@ -1,3 +1,7 @@
+﻿/**
+ * Schema de validation - profile.schema.js
+ * Decrit et valide les donnees recues avant leur traitement par les services.
+ */
 const validateCreateProfileRequest = (payload) => {
   const professional_title = payload?.professional_title?.trim();
   const summary = payload?.summary?.trim() || "";
@@ -68,3 +72,4 @@ module.exports = {
   validateCreateProfileRequest,
   validateUpdateProfileRequest
 };
+

@@ -1,3 +1,7 @@
+﻿/**
+ * Modele Mongoose - profile.model.js
+ * Definit la structure des documents stockes dans MongoDB et leurs options.
+ */
 const mongoose = require("mongoose");
 
 const profileSchema = new mongoose.Schema(
@@ -54,3 +58,4 @@ const Profile = mongoose.models.Profile || mongoose.model("Profile", profileSche
 module.exports = {
   Profile
 };
+

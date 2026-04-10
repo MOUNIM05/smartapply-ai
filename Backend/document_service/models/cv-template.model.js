@@ -1,3 +1,7 @@
+﻿/**
+ * Modele Mongoose - cv-template.model.js
+ * Definit la structure des documents stockes dans MongoDB et leurs options.
+ */
 import mongoose from "mongoose";
 import { randomUUID } from "crypto";
 
@@ -41,3 +45,4 @@ const cvTemplateSchema = new mongoose.Schema({
 const CVTemplate = mongoose.model("CVTemplate", cvTemplateSchema);
 
 export default CVTemplate;
+

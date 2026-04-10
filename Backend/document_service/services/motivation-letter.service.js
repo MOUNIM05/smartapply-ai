@@ -1,3 +1,7 @@
+﻿/**
+ * Couche service - motivation-letter.service.js
+ * Contient la logique metier et centralise les appels aux modeles MongoDB.
+ */
 import MotivationLetter from "../models/motivation-letter.model.js";
 
 export const createMotivationLetter = async (letterData) => {
@@ -27,3 +31,4 @@ export const updateMotivationLetter = async (id, updateData) => {
 export const deleteMotivationLetter = async (id) => {
   return await MotivationLetter.findByIdAndDelete(id);
 };
+

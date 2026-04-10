@@ -1,3 +1,7 @@
+﻿/**
+ * Controleur HTTP - language.controller.js
+ * Recoit les requetes Express, appelle la couche service et renvoie les reponses JSON.
+ */
 const {
   validateCreateLanguageRequest,
   validateUpdateLanguageRequest
@@ -53,3 +57,4 @@ module.exports = {
   updateLanguageController,
   deleteLanguageController
 };
+

@@ -1,28 +1,61 @@
+# SmartApply AI utilise plusieurs services backend.
+# Tous les services partagent la meme base MongoDB.
 services:
+  # Frontend React/Vite: interface utilisateur de SmartApply AI.
+  # Le dossier est en minuscule dans GitHub/Linux: ./frontend.
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: cv-ai-frontend
+    ports:
+      # Port Vite expose dans le navigateur.
+      - "5173:5173"
+    volumes:
+      # Monte le code local pour garder le hot reload en developpement.
+      - ./frontend:/app
+      # Garde les node_modules du conteneur pour eviter les conflits Windows/Linux.
+      - /app/node_modules
+    depends_on:
+      - backend
+      - profile-service
+      - job-service
+      - ai-service
+      - document-service
+    restart: unless-stopped
+
+  # Service auth: login, register, logout, utilisateurs et roles.
   backend:
     build:
       context: ./Backend/auth_service
       dockerfile: Dockerfile
     container_name: cv-ai-backend
     ports:
+      # API auth accessible depuis la machine locale.
       - "5000:5000"
     env_file:
+      # Variables sensibles du service auth: ne pas pousser le fichier .env.
       - ./Backend/auth_service/.env
     volumes:
+      # Monte le code local pour faciliter le developpement.
       - ./Backend/auth_service:/app
+      # Garde les dependances installees dans le conteneur.
       - /app/node_modules
     depends_on:
       - mongodb
     restart: unless-stopped
 
+  # Service profile: profil, experiences, formations, competences et langues.
   profile-service:
     build:
       context: ./Backend/profile_service
       dockerfile: Dockerfile
     container_name: cv-ai-profile-service
     ports:
+      # API profile accessible depuis la machine locale.
       - "5001:5001"
     env_file:
+      # Variables sensibles du service profile: ne pas pousser le fichier .env.
       - ./Backend/profile_service/.env
     volumes:
       - ./Backend/profile_service:/app
@@ -31,14 +64,17 @@ services:
       - mongodb
     restart: unless-stopped
 
+  # Service job: offres d'emploi et candidatures.
   job-service:
     build:
       context: ./Backend/job_service
       dockerfile: Dockerfile
     container_name: cv-ai-job-service
     ports:
+      # API job accessible depuis la machine locale.
       - "5002:5002"
     env_file:
+      # Variables sensibles du service job: ne pas pousser le fichier .env.
       - ./Backend/job_service/.env
     volumes:
       - ./Backend/job_service:/app
@@ -47,14 +83,17 @@ services:
       - mongodb
     restart: unless-stopped
 
+  # Service IA: stocke les prompts, les demandes et les reponses generees.
   ai-service:
     build:
       context: ./Backend/ai_service
       dockerfile: Dockerfile
     container_name: cv-ai-ai-service
     ports:
+      # API IA accessible depuis la machine locale.
       - "5003:5003"
     env_file:
+      # Variables sensibles du service IA: ne pas pousser le fichier .env.
       - ./Backend/ai_service/.env
     volumes:
       - ./Backend/ai_service:/app
@@ -63,14 +102,17 @@ services:
       - mongodb
     restart: unless-stopped
 
+  # Service document: genere les PDF de CV, lettres de motivation et emails.
   document-service:
     build:
       context: ./Backend/document_service
       dockerfile: Dockerfile
     container_name: cv-ai-document-service
     ports:
+      # Port externe 5004 redirige vers le port interne actuel du service document.
       - "5004:5002"
     environment:
+      # Configuration directe du service document.
       PORT: 5002
       MONGO_URI: mongodb://mongodb:27017/document-service
     volumes:
@@ -80,25 +122,32 @@ services:
       - mongodb
     restart: unless-stopped
 
+  # Base de donnees partagee par tous les services backend.
   mongodb:
     image: mongo:7
     container_name: cv-ai-mongodb
     restart: unless-stopped
     ports:
+      # MongoDB expose localement pour debug et outils.
       - "27017:27017"
     environment:
+      # Valeurs chargees depuis le fichier .env racine.
       MONGO_INITDB_ROOT_USERNAME: ${MONGO_INITDB_ROOT_USERNAME}
       MONGO_INITDB_ROOT_PASSWORD: ${MONGO_INITDB_ROOT_PASSWORD}
     volumes:
+      # Volume persistant pour ne pas perdre les donnees MongoDB.
       - mongo_data:/data/db
 
+  # Mongo Express permet de voir les collections MongoDB dans le navigateur.
   mongo-express:
     image: mongo-express:1.0.2
     container_name: cv-ai-mongo-express
     restart: unless-stopped
     ports:
+      # Interface web Mongo Express.
       - "8081:8081"
     environment:
+      # Connexion a MongoDB avec les variables du fichier .env racine.
       ME_CONFIG_MONGODB_ADMINUSERNAME: ${MONGO_INITDB_ROOT_USERNAME}
       ME_CONFIG_MONGODB_ADMINPASSWORD: ${MONGO_INITDB_ROOT_PASSWORD}
       ME_CONFIG_MONGODB_SERVER: mongodb
@@ -109,4 +158,5 @@ services:
       - mongodb
 
 volumes:
+  # Stockage persistant de MongoDB.
   mongo_data:

@@ -1,3 +1,7 @@
+﻿/**
+ * Controleur HTTP - auth.controller.js
+ * Recoit les requetes Express, appelle la couche service et renvoie les reponses JSON.
+ */
 const { validateLoginRequest, validateRegisterRequest } = require("../schemas/auth.schema");
 const { login, register, logout } = require("../services/auth.service");
 
@@ -37,3 +41,4 @@ module.exports = {
   registerController,
   logoutController
 };
+

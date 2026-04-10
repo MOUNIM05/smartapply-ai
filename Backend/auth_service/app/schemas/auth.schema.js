@@ -1,3 +1,7 @@
+﻿/**
+ * Schema de validation - auth.schema.js
+ * Decrit et valide les donnees recues avant leur traitement par les services.
+ */
 const validateLoginRequest = (payload) => {
   const email = payload?.email?.trim().toLowerCase();
   const password = payload?.password;
@@ -44,3 +48,4 @@ module.exports = {
   validateLoginRequest,
   validateRegisterRequest
 };
+

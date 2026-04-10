@@ -1,3 +1,7 @@
+﻿/**
+ * Controleur HTTP - profile.controller.js
+ * Recoit les requetes Express, appelle la couche service et renvoie les reponses JSON.
+ */
 const { validateCreateProfileRequest, validateUpdateProfileRequest } = require("../schemas/profile.schema");
 const {
   createProfile,
@@ -107,3 +111,4 @@ module.exports = {
   updateProfileByIdController,
   deleteProfileByIdController
 };
+

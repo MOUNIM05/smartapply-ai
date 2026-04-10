@@ -1,3 +1,7 @@
+﻿/**
+ * Controleur HTTP - application-email.controller.js
+ * Recoit les requetes Express, appelle la couche service et renvoie les reponses JSON.
+ */
 import { createApplicationEmail, getApplicationEmailById } from "../services/application-email.service.js";
 import { streamPDFToResponse } from "../services/pdf.service.js";
 
@@ -26,3 +30,4 @@ export const exportEmailPDFController = async (req, res, next) => {
     next(error);
   }
 };
+

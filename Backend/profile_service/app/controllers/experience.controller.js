@@ -1,3 +1,7 @@
+﻿/**
+ * Controleur HTTP - experience.controller.js
+ * Recoit les requetes Express, appelle la couche service et renvoie les reponses JSON.
+ */
 const {
   validateCreateExperienceRequest,
   validateUpdateExperienceRequest
@@ -57,3 +61,4 @@ module.exports = {
   updateExperienceController,
   deleteExperienceController
 };
+

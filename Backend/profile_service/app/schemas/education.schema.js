@@ -1,3 +1,7 @@
+﻿/**
+ * Schema de validation - education.schema.js
+ * Decrit et valide les donnees recues avant leur traitement par les services.
+ */
 const validateCreateEducationRequest = (payload) => {
   const title = payload?.title?.trim();
   const school = payload?.school?.trim();
@@ -50,3 +54,4 @@ module.exports = {
   validateCreateEducationRequest,
   validateUpdateEducationRequest
 };
+

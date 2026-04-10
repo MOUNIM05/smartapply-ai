@@ -1,3 +1,7 @@
+﻿/**
+ * Couche service - experience.service.js
+ * Contient la logique metier et centralise les appels aux modeles MongoDB.
+ */
 const { Profile } = require("../models/profile.model");
 const { Experience } = require("../models/experience.model");
 
@@ -97,3 +101,4 @@ module.exports = {
   updateExperience,
   deleteExperience
 };
+

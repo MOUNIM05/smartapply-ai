@@ -1,3 +1,7 @@
+﻿/**
+ * Couche service - cv-template.service.js
+ * Contient la logique metier et centralise les appels aux modeles MongoDB.
+ */
 import CVTemplate from "../models/cv-template.model.js";
 
 export const createCVTemplate = async (templateData) => {
@@ -25,3 +29,4 @@ export const updateCVTemplate = async (id, updateData) => {
 export const deleteCVTemplate = async (id) => {
   return await CVTemplate.findByIdAndDelete(id);
 };
+

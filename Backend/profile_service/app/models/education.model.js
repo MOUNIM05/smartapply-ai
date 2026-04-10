@@ -1,3 +1,7 @@
+﻿/**
+ * Modele Mongoose - education.model.js
+ * Definit la structure des documents stockes dans MongoDB et leurs options.
+ */
 const mongoose = require("mongoose");
 
 const educationSchema = new mongoose.Schema(
@@ -34,3 +38,4 @@ const Education =
 module.exports = {
   Education
 };
+

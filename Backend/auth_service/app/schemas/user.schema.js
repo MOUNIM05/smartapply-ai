@@ -1,3 +1,7 @@
+﻿/**
+ * Schema de validation - user.schema.js
+ * Decrit et valide les donnees recues avant leur traitement par les services.
+ */
 const validateUpdateMeRequest = (payload) => {
   const updates = {};
 
@@ -117,3 +121,4 @@ module.exports = {
   validateCreateUserRequest,
   validateAdminUpdateUserRequest
 };
+

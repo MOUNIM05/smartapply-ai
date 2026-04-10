@@ -1,3 +1,7 @@
+﻿/**
+ * Controleur HTTP - user.controller.js
+ * Recoit les requetes Express, appelle la couche service et renvoie les reponses JSON.
+ */
 const { validateUpdateMeRequest, validateCreateUserRequest, validateAdminUpdateUserRequest } = require("../schemas/user.schema");
 const {
   getCurrentUser,
@@ -95,3 +99,4 @@ module.exports = {
   updateUserByIdController,
   deleteUserByIdController
 };
+

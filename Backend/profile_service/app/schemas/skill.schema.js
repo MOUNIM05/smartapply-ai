@@ -1,3 +1,7 @@
+﻿/**
+ * Schema de validation - skill.schema.js
+ * Decrit et valide les donnees recues avant leur traitement par les services.
+ */
 const validateCreateSkillRequest = (payload) => {
   const name = payload?.name?.trim();
 
@@ -26,3 +30,4 @@ module.exports = {
   validateCreateSkillRequest,
   validateUpdateSkillRequest
 };
+

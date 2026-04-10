@@ -1,3 +1,7 @@
+﻿/**
+ * Modele Mongoose - language.model.js
+ * Definit la structure des documents stockes dans MongoDB et leurs options.
+ */
 const mongoose = require("mongoose");
 
 const languageSchema = new mongoose.Schema(
@@ -29,3 +33,4 @@ const Language =
 module.exports = {
   Language
 };
+

@@ -1,3 +1,7 @@
+﻿/**
+ * Controleur HTTP - motivation-letter.controller.js
+ * Recoit les requetes Express, appelle la couche service et renvoie les reponses JSON.
+ */
 import { createMotivationLetter, getMotivationLetterById } from "../services/motivation-letter.service.js";
 import { streamPDFToResponse } from "../services/pdf.service.js";
 
@@ -26,3 +30,4 @@ export const exportMotivationLetterPDFController = async (req, res, next) => {
     next(error);
   }
 };
+

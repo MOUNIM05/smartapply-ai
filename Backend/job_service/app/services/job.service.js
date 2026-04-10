@@ -1,3 +1,7 @@
+﻿/**
+ * Couche service - job.service.js
+ * Contient la logique metier et centralise les appels aux modeles MongoDB.
+ */
 const { Application } = require("../models/application.model");
 const { JobOffer } = require("../models/job-offer.model");
 
@@ -105,3 +109,4 @@ module.exports = {
   listApplications,
   getApplicationById
 };
+

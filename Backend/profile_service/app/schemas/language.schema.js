@@ -1,3 +1,7 @@
+﻿/**
+ * Schema de validation - language.schema.js
+ * Decrit et valide les donnees recues avant leur traitement par les services.
+ */
 const validateCreateLanguageRequest = (payload) => {
   const name = payload?.name?.trim();
   const level = payload?.level?.trim() || "";
@@ -38,3 +42,4 @@ module.exports = {
   validateCreateLanguageRequest,
   validateUpdateLanguageRequest
 };
+

@@ -1,3 +1,7 @@
+﻿/**
+ * Couche service - pdf.service.js
+ * Contient la logique metier et centralise les appels aux modeles MongoDB.
+ */
 import PDFDocument from "pdfkit";
 
 export const generatePDF = (documentData) => {
@@ -64,3 +68,4 @@ export const streamPDFToResponse = (doc, res, filename, statusCode = 200) => {
   doc.pipe(res);
   doc.end();
 };
+

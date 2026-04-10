@@ -1,3 +1,7 @@
+﻿/**
+ * Modele Mongoose - ai-model.model.js
+ * Definit la structure des documents stockes dans MongoDB et leurs options.
+ */
 const mongoose = require("mongoose");
 
 const aiModelSchema = new mongoose.Schema(
@@ -32,3 +36,4 @@ const AIModel = mongoose.model("AIModel", aiModelSchema);
 module.exports = {
   AIModel
 };
+
