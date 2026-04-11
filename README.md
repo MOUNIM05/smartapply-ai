@@ -227,3 +227,57 @@ La branche `main` est protegee. Les changements doivent passer par une Pull Requ
 - Ne jamais pousser `node_modules`.
 - Utiliser les fichiers `.env.example` pour documenter les variables necessaires.
 - Changer les mots de passe et secrets avant tout deploiement en production.
+
+## D. Securite
+
+L'application protege les routes backend avec un token JWT retourne apres authentification via `POST /auth/login`.
+
+Exemple de reponse login:
+
+```json
+{
+  "access_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+  "token_type": "bearer"
+}
+```
+
+Screenshot a prendre dans Postman (`Headers`):
+
+```text
+Key: Authorization
+Value: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+```
+
+Exemple d'utilisation sur une route protegee:
+
+```text
+GET http://localhost:5002/job-offers
+Authorization: Bearer <access_token>
+```
+
+Petit extrait du middleware JWT:
+
+```js
+const verifyToken = (req, res, next) => {
+  try {
+    const token = extractBearerToken(req.headers.authorization);
+
+    if (!token) {
+      return res.status(401).json({ message: "Access token is required" });
+    }
+
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    req.user = decoded;
+    next();
+  } catch (error) {
+    return res.status(401).json({ message: "Invalid or expired token" });
+  }
+};
+```
+
+Ce middleware est applique sur les routes sensibles, par exemple:
+
+```js
+router.get("/job-offers", verifyToken, listJobOffersController);
+router.get("/applications", verifyToken, requireAdmin, listApplicationsController);
+```
