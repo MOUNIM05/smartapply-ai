@@ -9,9 +9,11 @@ const { AIGenerationResponse } = require("../models/ai-generation-response.model
 const DEFAULT_AI_MODEL = {
   name: "SmartApply Assistant",
   provider: "OpenAI",
-  version: "mock-v1",
+  version: process.env.OPENAI_MODEL || "mock-v1",
   isActive: true
 };
+
+const OPENAI_API_URL = "https://api.openai.com/v1/responses";
 
 const serializeAIModel = (aiModel) => ({
   id: aiModel._id,
@@ -116,6 +118,64 @@ ${shortPrompt}`
   return outputs[requestType] || outputs.other;
 };
 
+const buildOpenAIInstructions = ({ requestType, contextData }) => {
+  const jobContext = contextData?.jobContext || "General opportunity";
+  const template = contextData?.template || "Aurora";
+
+  const instructionsByType = {
+    cv_generation: `You write ATS-friendly CV drafts. Use a concise, professional tone, tailor the content to ${jobContext}, and keep the structure compatible with the ${template} template.`,
+    motivation_letter: `You write professional motivation letters tailored to ${jobContext}. Keep the tone persuasive, clear, and realistic.`,
+    application_email: `You write short professional application emails tailored to ${jobContext}. Keep the result concise and ready to send.`,
+    job_adaptation: `You adapt candidate content to better match ${jobContext}. Highlight alignment, keywords, and relevant strengths.`,
+    other: "You improve professional application content. Rewrite it clearly, keep useful details, and avoid unnecessary repetition."
+  };
+
+  return instructionsByType[requestType] || instructionsByType.other;
+};
+
+const generateWithOpenAI = async ({ requestType, prompt, contextData }) => {
+  const apiKey = process.env.OPENAI_API_KEY;
+
+  if (!apiKey) {
+    return buildMockOutput({ requestType, prompt, contextData });
+  }
+
+  const controller = new AbortController();
+  const timeoutMs = Number(process.env.OPENAI_TIMEOUT_MS || 20000);
+  const timeout = setTimeout(() => controller.abort(), timeoutMs);
+
+  try {
+    const response = await fetch(OPENAI_API_URL, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${apiKey}`
+      },
+      body: JSON.stringify({
+        model: process.env.OPENAI_MODEL || "gpt-5.2",
+        instructions: buildOpenAIInstructions({ requestType, contextData }),
+        input: prompt
+      }),
+      signal: controller.signal
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(`OpenAI request failed (${response.status}): ${errorText}`);
+    }
+
+    const payload = await response.json();
+    const outputText = payload?.output_text?.trim();
+
+    return outputText || buildMockOutput({ requestType, prompt, contextData });
+  } catch (error) {
+    console.error("OpenAI generation failed, using mock fallback:", error.message);
+    return buildMockOutput({ requestType, prompt, contextData });
+  } finally {
+    clearTimeout(timeout);
+  }
+};
+
 const createAIModel = async (payload) => {
   const aiModel = await AIModel.create(payload);
 
@@ -165,18 +225,22 @@ const createAIGenerationRequest = async (requesterId, payload) => {
     requesterId
   });
 
+  const rawOutput = await generateWithOpenAI({
+    requestType: payload.requestType,
+    prompt: payload.prompt,
+    contextData: payload.contextData
+  });
+
   const response = await AIGenerationResponse.create({
     requestId: request._id,
-    rawOutput: buildMockOutput({
-      requestType: payload.requestType,
-      prompt: payload.prompt,
-      contextData: payload.contextData
-    }),
+    rawOutput,
     structuredOutput: {
       requestType: payload.requestType,
       template: payload.contextData?.template || "Aurora",
       jobContext: payload.contextData?.jobContext || "",
-      generatedBy: aiModel.name
+      generatedBy: process.env.OPENAI_API_KEY
+        ? `${aiModel.name} via OpenAI API`
+        : `${aiModel.name} mock fallback`
     },
     status: "completed"
   });

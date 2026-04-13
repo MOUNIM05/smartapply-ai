@@ -92,6 +92,18 @@ Exemple pour un service backend:
 Copy-Item Backend/auth_service/.env.example Backend/auth_service/.env
 ```
 
+Variables IA a configurer dans `Backend/ai_service/.env`:
+
+- `OPENAI_API_KEY`: cle OpenAI utilisee uniquement cote backend
+- `OPENAI_MODEL`: modele OpenAI par defaut
+- `OPENAI_TIMEOUT_MS`: timeout maximum pour l'appel OpenAI
+
+Important:
+
+- ne jamais mettre la vraie cle OpenAI dans `Frontend/`
+- ne jamais commiter la vraie cle OpenAI dans Git
+- si `OPENAI_API_KEY` manque, `ai_service` utilise automatiquement le fallback mock local
+
 ## Lancement avec Docker Compose
 
 Depuis la racine du projet:
@@ -156,6 +168,11 @@ La page `Generate CV` utilise maintenant un flux en deux etapes:
 1. `ai_service` genere un brouillon texte a partir du contexte saisi par l'utilisateur.
 2. `document_service` transforme ce contenu en document PDF telechargeable.
 
+Comportement de `ai_service`:
+
+- si `OPENAI_API_KEY` est configuree, le service appelle l'API OpenAI
+- si la cle manque ou si l'appel echoue, le service repasse sur le mock interne pour ne pas bloquer l'application
+
 Comportement par action:
 
 - `Generate CV`: utilise l'IA pour preparer le contenu, puis cree un PDF via `document_service`.
@@ -170,6 +187,29 @@ Services appeles par le frontend:
 - `document_service`: `http://localhost:5004`
 
 Le resultat texte reste visible dans l'interface, et un fichier PDF est telecharge automatiquement pour les trois actions documentaires.
+
+## Tester l'integration OpenAI depuis le frontend
+
+1. Ajouter une vraie cle dans `Backend/ai_service/.env`:
+
+```env
+OPENAI_API_KEY=your_real_key_here
+OPENAI_MODEL=gpt-5.2
+OPENAI_TIMEOUT_MS=20000
+```
+
+2. Relancer le service `ai_service` ou relancer `docker compose`.
+3. Se connecter au frontend sur `http://localhost:5173`.
+4. Ouvrir la page `Generate CV`.
+5. Choisir une action:
+   - `Generate CV`
+   - `Generate Motivation Letter`
+   - `Generate Email`
+   - `Improve Content`
+   - `Adapt to Job Offer`
+6. Saisir un contexte, une offre ou des points cles.
+7. Cliquer sur `Generate with AI`.
+8. Verifier que le texte genere est affiche et que les actions documentaires telechargent un PDF.
 
 ## CI/CD
 
