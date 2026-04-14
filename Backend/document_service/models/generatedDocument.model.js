@@ -32,6 +32,15 @@ export const GeneratedDocumentSchema = {
     required: true,
     trim: true
   },
+  templateKey: {
+    type: String,
+    trim: true,
+    default: null
+  },
+  structuredData: {
+    type: Object,
+    default: {}
+  },
   format: {
     type: String,
     required: true,
