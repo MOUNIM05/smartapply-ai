@@ -4,7 +4,7 @@ import { motion } from 'framer-motion'
 import { Camera, Phone, MapPin, Save, CheckCircle2, Link as LinkIcon, Trash2, Plus } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import FormInput from '../components/FormInput'
-import { authApi, getAuthToken, getCurrentUserRole, profileApi } from '../services/api'
+import { authApi, getAuthToken, getCurrentUser, getCurrentUserRole, setCurrentUser, profileApi } from '../services/api'
 
 const container = {
   hidden: { opacity: 0, y: 18 },
@@ -32,6 +32,7 @@ export default function Profile() {
   const isAdmin = role === 'admin'
 
   const [form, setForm] = useState(emptyProfile)
+  const [currentUser, setCurrentUserState] = useState(getCurrentUser())
   const [profiles, setProfiles] = useState([])
   const [users, setUsers] = useState([])
   const [adminForm, setAdminForm] = useState({ user_id: '', ...emptyProfile })
@@ -54,17 +55,26 @@ export default function Profile() {
           setProfiles(profilesResponse.data?.profiles || [])
           setUsers(usersResponse.data?.users || [])
         } else {
-          const { data } = await profileApi.get('/profiles/me')
-          if (data?.profile) {
+          const [profileResponse, userResponse] = await Promise.all([
+            profileApi.get('/profiles/me'),
+            authApi.get('/users/me')
+          ])
+
+          if (profileResponse.data?.profile) {
             setForm({
-              professional_title: data.profile.professional_title || '',
-              summary: data.profile.summary || '',
-              phone: data.profile.phone || '',
-              address: data.profile.address || '',
-              linkedin_url: data.profile.linkedin_url || '',
-              github_url: data.profile.github_url || '',
-              portfolio_url: data.profile.portfolio_url || ''
+              professional_title: profileResponse.data.profile.professional_title || '',
+              summary: profileResponse.data.profile.summary || '',
+              phone: profileResponse.data.profile.phone || '',
+              address: profileResponse.data.profile.address || '',
+              linkedin_url: profileResponse.data.profile.linkedin_url || '',
+              github_url: profileResponse.data.profile.github_url || '',
+              portfolio_url: profileResponse.data.profile.portfolio_url || ''
             })
+          }
+
+          if (userResponse.data?.user) {
+            setCurrentUserState(userResponse.data.user)
+            setCurrentUser(userResponse.data.user)
           }
         }
       } catch (err) {
@@ -78,6 +88,15 @@ export default function Profile() {
 
     loadData()
   }, [isAdmin, navigate])
+
+  useEffect(() => {
+    const handleUserChanged = (event) => {
+      setCurrentUserState(event.detail || getCurrentUser())
+    }
+
+    window.addEventListener('smartapply:user-changed', handleUserChanged)
+    return () => window.removeEventListener('smartapply:user-changed', handleUserChanged)
+  }, [])
 
   const usersWithoutProfile = useMemo(
     () => users.filter((user) => !profiles.some((profile) => profile.user_id === user.id)),
@@ -302,8 +321,21 @@ export default function Profile() {
                 whileHover={{ scale: 1.04, boxShadow: '0 20px 50px rgba(99,102,241,0.35)' }}
                 className="relative mb-4"
               >
-                <div className="h-28 w-28 rounded-full bg-gradient-to-br from-primary via-indigo-500 to-purple-500 shadow-xl" />
-                <button className="absolute -right-2 -bottom-2 inline-flex h-10 w-10 items-center justify-center rounded-full border border-slate-100 bg-white/80 backdrop-blur shadow-soft">
+                {currentUser?.avatar_url ? (
+                  <img
+                    src={currentUser.avatar_url}
+                    alt={[currentUser.first_name, currentUser.last_name].filter(Boolean).join(' ') || currentUser.email || 'Profile avatar'}
+                    className="h-28 w-28 rounded-full object-cover ring-4 ring-indigo-100 shadow-xl"
+                  />
+                ) : (
+                  <div className="h-28 w-28 rounded-full bg-gradient-to-br from-primary via-indigo-500 to-purple-500 shadow-xl" />
+                )}
+                <button
+                  type="button"
+                  onClick={() => navigate('/account')}
+                  className="absolute -right-2 -bottom-2 inline-flex h-10 w-10 items-center justify-center rounded-full border border-slate-100 bg-white/80 backdrop-blur shadow-soft"
+                  aria-label="Open account photo settings"
+                >
                   <Camera size={16} className="text-slate-700" />
                 </button>
               </motion.div>
