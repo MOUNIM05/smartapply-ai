@@ -1,9 +1,10 @@
+// Defines the Dashboard Layout layout used by the frontend application.
 import { useEffect, useState } from 'react'
 import { Outlet, useNavigate } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import Sidebar from '../components/Sidebar'
 import Navbar from '../components/Navbar'
-import { authApi, clearSession, setCurrentUser } from '../services/api'
+import { authApi, clearSession, getAuthToken, setCurrentUser } from '../services/api'
 
 export default function DashboardLayout() {
   const [sidebarOpen, setSidebarOpen] = useState(true)
@@ -11,7 +12,7 @@ export default function DashboardLayout() {
   const navigate = useNavigate()
 
   useEffect(() => {
-    const token = localStorage.getItem('access_token')
+    const token = getAuthToken()
     if (!token) {
       navigate('/login')
       return

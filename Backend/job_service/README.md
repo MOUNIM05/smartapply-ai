@@ -1,22 +1,16 @@
 # Job Service
 
-This service contains the job-related domain models:
+Service de gestion des offres d'emploi et des candidatures.
 
-- `JobOffer`
-- `Application`
-- routes, controllers, schemas, and services for both entities
+## Responsabilites
 
-Run from the project root with:
+- creation d'offres
+- consultation des offres
+- consultation d'une offre par id
+- creation de candidatures
+- consultation admin des candidatures
 
-```bash
-docker compose up --build
-```
-
-Service URL:
-
-- Job service: `http://localhost:5002`
-
-Available routes:
+## Routes principales
 
 - `POST /job-offers`
 - `GET /job-offers`
@@ -24,3 +18,25 @@ Available routes:
 - `POST /applications`
 - `GET /applications`
 - `GET /applications/:id`
+
+## Points importants
+
+- une candidature reference un `profileId` et un `jobOfferId`
+- une candidature peut stocker :
+  - `cvFile`
+  - `motivationLetterFile`
+- les fichiers sont verifies comme PDF
+- le service envoie des notifications pour la creation d'offre et l'envoi de candidature
+
+## Scripts
+
+```powershell
+npm run dev
+npm start
+```
+
+## URL locale
+
+```text
+http://localhost:5002
+```

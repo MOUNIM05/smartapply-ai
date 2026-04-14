@@ -1,3 +1,4 @@
+// Defines the main frontend routes and animated page transitions.
 import { BrowserRouter, Routes, Route, useLocation } from 'react-router-dom'
 import { AnimatePresence } from 'framer-motion'
 
@@ -11,6 +12,8 @@ import Experiences from './pages/Experiences'
 import Jobs from './pages/Jobs'
 import GenerateCV from './pages/GenerateCV'
 import Documents from './pages/Documents'
+import Notifications from './pages/Notifications'
+import Subscription from './pages/Subscription'
 
 function AnimatedRoutes() {
 	const location = useLocation()
@@ -29,6 +32,8 @@ function AnimatedRoutes() {
 					<Route path="jobs" element={<Jobs />} />
 					<Route path="generate" element={<GenerateCV />} />
 					<Route path="documents" element={<Documents />} />
+					<Route path="notifications" element={<Notifications />} />
+					<Route path="subscription" element={<Subscription />} />
 				</Route>
 			</Routes>
 		</AnimatePresence>

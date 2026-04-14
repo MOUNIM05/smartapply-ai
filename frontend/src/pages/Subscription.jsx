@@ -1,3 +1,4 @@
+// Renders the Subscription page and coordinates its UI state.
 import { motion } from 'framer-motion'
 import { ArrowRight, BadgeCheck, GraduationCap, ShieldCheck, Sparkles, Stars } from 'lucide-react'
 

@@ -1,3 +1,4 @@
+// Renders the Notifications page and coordinates its UI state.
 import { useEffect, useMemo, useState } from 'react'
 import { motion } from 'framer-motion'
 import { Bell, CheckCheck, RefreshCw, Loader2, CircleDot, Inbox, Search, Archive } from 'lucide-react'

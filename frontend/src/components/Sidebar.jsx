@@ -1,29 +1,40 @@
-import { NavLink } from 'react-router-dom'
+// Provides the Sidebar reusable UI component.
+import { NavLink, useNavigate } from 'react-router-dom'
 import { motion } from 'framer-motion'
-import { LayoutDashboard, User2, Briefcase, Sparkles, FileText, LogOut } from 'lucide-react'
+import { LayoutDashboard, User2, Briefcase, Sparkles, FileText, LogOut, Bell } from 'lucide-react'
 import { clearSession, getCurrentUserRole } from '../services/api'
+import BrandLogo from './BrandLogo'
 
 const userNavItems = [
   { to: '/dashboard', label: 'Dashboard', Icon: LayoutDashboard },
   { to: '/profile', label: 'Profile', Icon: User2 },
   { to: '/experiences', label: 'Experiences', Icon: Briefcase },
   { to: '/jobs', label: 'Jobs', Icon: FileText },
-  { to: '/generate', label: 'Generate CV', Icon: Sparkles }
+  { to: '/generate', label: 'Generate CV', Icon: Sparkles },
+  { to: '/notifications', label: 'Notifications', Icon: Bell }
 ]
 
 const adminNavItems = [
   { to: '/dashboard', label: 'Dashboard', Icon: LayoutDashboard },
   { to: '/profile', label: 'Profiles', Icon: User2 },
-  { to: '/jobs', label: 'Jobs', Icon: FileText }
+  { to: '/jobs', label: 'Jobs', Icon: FileText },
+  { to: '/notifications', label: 'Notifications', Icon: Bell }
 ]
 
 function Sidebar({ collapsed = false, onToggle, onNavigate }) {
   const width = collapsed ? 76 : 276
-  const navItems = getCurrentUserRole() === 'admin' ? adminNavItems : userNavItems
+  const isAdmin = getCurrentUserRole() === 'admin'
+  const navItems = isAdmin ? adminNavItems : userNavItems
+  const navigate = useNavigate()
 
   const handleLogout = () => {
     clearSession()
     window.location.href = '/login'
+  }
+
+  const handleUpgrade = () => {
+    navigate('/subscription')
+    onNavigate?.()
   }
 
   return (
@@ -33,14 +44,10 @@ function Sidebar({ collapsed = false, onToggle, onNavigate }) {
       className="h-full bg-dark text-slate-100 flex flex-col border-r border-white/5 py-6"
     >
       <div className="px-4 flex items-center gap-3 pb-6 border-b border-white/10">
-        <div className="h-10 w-10 rounded-xl bg-gradient-to-br from-primary to-indigo-400 flex items-center justify-center font-semibold text-white">
-          SA
-        </div>
-        {!collapsed && (
-          <div>
-            <p className="text-sm text-slate-300">SmartApply AI</p>
-            <p className="text-lg font-semibold text-white">Career Copilot</p>
-          </div>
+        {collapsed ? (
+          <BrandLogo showWordmark={false} className="h-10 w-10" />
+        ) : (
+          <BrandLogo compact className="min-w-0" />
         )}
         <button
           className="ml-auto h-9 w-9 rounded-lg border border-white/10 text-slate-200 hover:bg-white/10 transition"
@@ -74,8 +81,12 @@ function Sidebar({ collapsed = false, onToggle, onNavigate }) {
       </nav>
 
       <div className="space-y-3 pt-4 border-t border-white/10 px-3">
-        {!collapsed && (
-          <button className="w-full flex items-center gap-3 px-3 py-2 rounded-xl bg-primary/20 text-white hover:bg-primary/30 transition">
+        {!collapsed && !isAdmin && (
+          <button
+            type="button"
+            onClick={handleUpgrade}
+            className="w-full flex items-center gap-3 px-3 py-2 rounded-xl bg-primary/20 text-white hover:bg-primary/30 transition"
+          >
             <Sparkles size={18} />
             <span className="text-sm font-semibold">Upgrade to Pro</span>
           </button>

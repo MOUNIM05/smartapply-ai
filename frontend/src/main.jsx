@@ -1,3 +1,4 @@
+// Mounts the SmartApplyAI React application in the browser.
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import './index.css'

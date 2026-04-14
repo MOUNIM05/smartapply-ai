@@ -1,3 +1,4 @@
+// Connects the document service to MongoDB.
 import mongoose from "mongoose";
 
 const connectDatabase = async () => {

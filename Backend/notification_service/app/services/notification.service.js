@@ -1,3 +1,4 @@
+// Implements Notification.service business logic for the Notification service.
 const { Notification } = require("../models/notification.model");
 
 const serializeNotification = (notification) => ({

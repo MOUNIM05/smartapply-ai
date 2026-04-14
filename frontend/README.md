@@ -1,61 +1,115 @@
-# SmartApply AI – Frontend (React + Vite)
+# SmartApplyAI Frontend
 
-Modern SaaS UI built with React, Vite, Tailwind CSS, Framer Motion, React Router, Axios, and Lucide icons. The frontend is aligned with the UML use‑case/class/sequence specs and is ready for backend integration.
+Frontend React/Vite de SmartApplyAI.
 
 ## Stack
-- React 19, Vite
-- Tailwind CSS (Stripe/Linear-inspired design system)
-- Framer Motion (page + hover + loading animations)
-- React Router (nested dashboard layout)
-- Axios (API calls, auth logout)
-- Lucide React Icons
 
-## Project structure
-```
-src/
-  components/ Sidebar.jsx, Navbar.jsx, Card.jsx, FormInput.jsx
-  layouts/   DashboardLayout.jsx
-  pages/
-    Login.jsx, Register.jsx
-    Dashboard.jsx
-    Profile.jsx
-    Experiences.jsx
-    Jobs.jsx
-    GenerateCV.jsx
-    Documents.jsx
-```
+- React
+- Vite
+- Tailwind CSS
+- Framer Motion
+- React Router
+- Axios
+- Lucide React
 
-## Key features by page
-- **Auth (Login/Register):** Split layout, animated gradient hero, form validation states, navigation to dashboard.  
-- **Dashboard:** SaaS cards, pipeline widgets, recent activity, hover/slide animations.  
-- **Profile:** Account form + avatar card; added Education, Skills, Languages sections with add forms/lists; save button with loading/success feedback.  
-- **Experiences:** CRUD via modal; cards show role, company, dates, summary, and skills pills. Extra sections for Formations, Skills, Languages with add forms and empty states.  
-- **Jobs:** Job list with status pills; add-job modal; highlighted selection; Apply and Save buttons.  
-- **Generate CV (AI):** Action selector (Generate CV, Motivation Letter, Email, Improve Content, Adapt to Job Offer); inputs for JD + notes; loading overlay, disabled button during generation, success hint; copy/download enabled after result; template picker with selection highlight.  
-- **Documents:** Cards for CV/Letter/Email/Portfolio; preview/download UI, empty state, mock upload/add.  
-- **CV Templates:** Included in GenerateCV template picker (Aurora, Minimal, Gradient, Slate).  
-- **Global layout:** Sticky navbar, sticky/animated sidebar, scrollable content, min-h-screen pages, consistent spacing (`p-6`, `gap-6`, `rounded-xl`, `shadow-md`).
+## Pages principales
 
-## UX & interactions
-- Page fade/slide transitions via Framer Motion.
-- Card hover lift/shadow, button hover scale, focus glows on inputs.
-- Loading states for generation and logout; success toasts/text for saves.
-- Empty states on lists (experiences, documents, jobs).
+- `Login`
+- `Register`
+- `Dashboard`
+- `Account`
+- `Profile`
+- `Experiences`
+- `Jobs`
+- `GenerateCV`
+- `Documents`
+- `Notifications`
+- `Subscription`
 
-## Auth logout flow
-- Logout button in `Navbar` sends `POST /auth/logout` with Bearer token (if present), clears `access_token` / `refresh_token` / `token` from `localStorage`, then navigates to `/login` with loading spinner/disabled state.
+## Fonctionnalites frontend
+
+### Authentification
+
+- login / register
+- `Remember me`
+- protection des routes privees
+
+### Compte utilisateur
+
+- modification du prenom, nom, email, adresse et mot de passe
+- ajout d'une photo de profil par upload ou URL
+- affichage de la photo dans la navbar
+
+### Profil candidat
+
+- edition du profil principal
+- gestion des experiences
+- gestion des formations
+- gestion des competences
+- gestion des langues
+
+### Jobs
+
+- recherche par mot-cle et localisation
+- affichage liste + detail
+- score de compatibilite
+- conseils de candidature
+- ajout d'offre
+- candidature avec CV PDF et lettre PDF
+
+### IA et documents
+
+- page `GenerateCV`
+- generation de CV
+- generation de lettre de motivation
+- generation d'email de candidature
+- adaptation de contenu
+- export PDF via `document_service`
+
+### Notifications
+
+- cloche de notifications
+- dropdown rapide
+- page detaillee
+- recherche
+- filtres
+- archivage
+
+### Branding et UI
+
+- logo SmartApplyAI integre dans sidebar, navbar et ecrans d'authentification
+- composants boutons harmonises
+- corrections d'alignement visuel sur les pages principales
+- interface admin ajustee
+
+## Services backend utilises
+
+- `http://localhost:5000` auth
+- `http://localhost:5001` profile
+- `http://localhost:5002` jobs
+- `http://localhost:5003` ai
+- `http://localhost:5004` documents
+- `http://localhost:5005` notifications
 
 ## Scripts
-- `npm run dev` – start dev server  
-- `npm run build` – production build  
-- `npm run preview` – preview build  
-- `npm run lint` – lint with ESLint
 
-## Setup
-```bash
-cd frontend
+```powershell
+npm run dev
+npm run build
+npm run preview
+npm run lint
+```
+
+## Lancement local
+
+```powershell
+cd Frontend
 npm install
 npm run dev
 ```
 
-Backend endpoints are not wired beyond the logout call; plug your API base URL and endpoints as needed. The UI is ready for professor validation and further integration.
+Application :
+
+```text
+http://localhost:5173
+```

@@ -11,6 +11,8 @@ const sanitizeUser = (user) => ({
   first_name: user.first_name,
   last_name: user.last_name,
   email: user.email,
+  address: user.address,
+  avatar_url: user.avatar_url,
   role: user.role,
   createdAt: user.createdAt,
   updatedAt: user.updatedAt
@@ -59,6 +61,14 @@ const updateCurrentUser = async (userId, updates) => {
 
   if (updates.email) {
     user.email = updates.email;
+  }
+
+  if (Object.prototype.hasOwnProperty.call(updates, "address")) {
+    user.address = updates.address;
+  }
+
+  if (Object.prototype.hasOwnProperty.call(updates, "avatar_url")) {
+    user.avatar_url = updates.avatar_url;
   }
 
   if (updates.password) {
@@ -123,7 +133,7 @@ const getUserById = async (userId) => {
   };
 };
 
-const createUserByAdmin = async ({ first_name, last_name, email, password, role }, actorUserId) => {
+const createUserByAdmin = async ({ first_name, last_name, email, password, role, address, avatar_url }, actorUserId) => {
   const existingUser = await User.findOne({ email });
 
   if (existingUser) {
@@ -138,6 +148,8 @@ const createUserByAdmin = async ({ first_name, last_name, email, password, role 
     first_name,
     last_name,
     email,
+    address,
+    avatar_url,
     password: hashedPassword,
     role
   });
@@ -185,6 +197,14 @@ const updateUserByAdmin = async (userId, updates, actorUserId) => {
 
   if (updates.email) {
     user.email = updates.email;
+  }
+
+  if (Object.prototype.hasOwnProperty.call(updates, "address")) {
+    user.address = updates.address;
+  }
+
+  if (Object.prototype.hasOwnProperty.call(updates, "avatar_url")) {
+    user.avatar_url = updates.avatar_url;
   }
 
   if (updates.password) {

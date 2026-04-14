@@ -1,3 +1,4 @@
+// Provides the Seed script for the document service.
 import "dotenv/config";
 import mongoose from "mongoose";
 import CVTemplate from "../models/cv-template.model.js";

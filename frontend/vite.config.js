@@ -1,3 +1,4 @@
+// Configures the Vite build and dev server for the frontend.
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 

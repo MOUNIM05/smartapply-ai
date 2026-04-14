@@ -79,6 +79,8 @@ const register = async ({ first_name, last_name, email, password }) => {
     first_name,
     last_name,
     email,
+    address: "",
+    avatar_url: "",
     password: hashedPassword,
     role: "user"
   });

@@ -1,3 +1,4 @@
+// Registers User.routes routes for the Auth service.
 const express = require("express");
 
 const { verifyToken, requireAdmin } = require("../middlewares/auth.middleware");

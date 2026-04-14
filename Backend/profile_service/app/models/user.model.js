@@ -19,6 +19,16 @@ const userSchema = new mongoose.Schema(
       lowercase: true,
       trim: true
     },
+    address: {
+      type: String,
+      default: "",
+      trim: true
+    },
+    avatar_url: {
+      type: String,
+      default: "",
+      trim: true
+    },
     role: {
       type: String,
       enum: ["user", "admin"],

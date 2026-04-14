@@ -1,3 +1,4 @@
+// Provides Auth.middleware middleware for the Auth service.
 const jwt = require("jsonwebtoken");
 
 // Extrait uniquement le token depuis le header

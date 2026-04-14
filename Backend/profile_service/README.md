@@ -1,20 +1,76 @@
 # Profile Service
 
-This service handles all profile-related features:
+Service de gestion du profil candidat dans SmartApplyAI.
 
-- create profile
-- view current profile
-- update current profile
-- delete current profile
-- admin view all profiles
-- admin view one profile by id
+## Responsabilites
 
-Run from the project root with:
+- creation du profil utilisateur
+- consultation du profil courant
+- mise a jour du profil courant
+- suppression du profil courant
+- administration des profils
+- gestion des experiences
+- gestion des formations
+- gestion des competences
+- gestion des langues
 
-```bash
-docker compose up --build
+## Routes principales
+
+### Profil
+
+- `POST /profiles`
+- `GET /profiles/me`
+- `PUT /profiles/me`
+- `DELETE /profiles/me`
+- `GET /profiles`
+- `POST /profiles/admin`
+- `GET /profiles/:id`
+- `PUT /profiles/:id`
+- `DELETE /profiles/:id`
+
+### Experiences
+
+- `GET /experiences/me`
+- `POST /experiences`
+- `PUT /experiences/:id`
+- `DELETE /experiences/:id`
+
+### Educations
+
+- `GET /educations/me`
+- `POST /educations`
+- `PUT /educations/:id`
+- `DELETE /educations/:id`
+
+### Skills
+
+- `GET /skills/me`
+- `POST /skills`
+- `PUT /skills/:id`
+- `DELETE /skills/:id`
+
+### Languages
+
+- `GET /languages/me`
+- `POST /languages`
+- `PUT /languages/:id`
+- `DELETE /languages/:id`
+
+## Points importants
+
+- le profil est lie a `User`
+- les sous-ressources sont liees a `Profile`
+- les actions metier importantes envoient une notification
+
+## Scripts
+
+```powershell
+npm run dev
+npm start
 ```
 
-Service URL:
+## URL locale
 
-- Profile service: `http://localhost:5001`
+```text
+http://localhost:5001
+```

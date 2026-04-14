@@ -1,3 +1,4 @@
+// Registers Ai.routes routes for the Ai service.
 const express = require("express");
 const { verifyToken, requireAdmin } = require("../middlewares/auth.middleware");
 const {

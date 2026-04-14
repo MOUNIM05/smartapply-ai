@@ -1,3 +1,4 @@
+// Provides the Card reusable UI component.
 import { motion } from 'framer-motion'
 
 function Card({ title, value, accent, sub }) {

@@ -1,3 +1,4 @@
+// Registers Job.routes routes for the Job service.
 const express = require("express");
 const { verifyToken, requireAdmin } = require("../middlewares/auth.middleware");
 

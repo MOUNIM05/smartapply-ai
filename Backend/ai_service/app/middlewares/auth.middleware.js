@@ -1,3 +1,4 @@
+// Provides Auth.middleware middleware for the Ai service.
 const jwt = require("jsonwebtoken");
 
 const extractBearerToken = (authorizationHeader) => {

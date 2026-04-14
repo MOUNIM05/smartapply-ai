@@ -1,12 +1,63 @@
-import { useEffect, useState } from 'react'
+// Renders the Account page and coordinates its UI state.
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { motion } from 'framer-motion'
-import { Mail, Shield, UserRound } from 'lucide-react'
+import { Camera, Loader2, Mail, MapPin, Pencil, Save, Shield, UserRound, X } from 'lucide-react'
+import FormInput from '../components/FormInput'
 import { authApi, getCurrentUser, setCurrentUser } from '../services/api'
+
+const MAX_AVATAR_SIZE = 320
+
+const createInitialForm = (user) => ({
+  first_name: user?.first_name || '',
+  last_name: user?.last_name || '',
+  email: user?.email || '',
+  address: user?.address || '',
+  avatar_url: user?.avatar_url || '',
+  password: ''
+})
+
+const resizeImageToDataUrl = (file) =>
+  new Promise((resolve, reject) => {
+    const image = new Image()
+    const reader = new FileReader()
+
+    reader.onload = () => {
+      image.onload = () => {
+        const canvas = document.createElement('canvas')
+        const ratio = Math.min(MAX_AVATAR_SIZE / image.width, MAX_AVATAR_SIZE / image.height, 1)
+        const width = Math.round(image.width * ratio)
+        const height = Math.round(image.height * ratio)
+
+        canvas.width = width
+        canvas.height = height
+
+        const context = canvas.getContext('2d')
+        if (!context) {
+          reject(new Error('Canvas is not supported in this browser.'))
+          return
+        }
+
+        context.drawImage(image, 0, 0, width, height)
+        resolve(canvas.toDataURL('image/jpeg', 0.82))
+      }
+
+      image.onerror = () => reject(new Error('Failed to read the selected image.'))
+      image.src = typeof reader.result === 'string' ? reader.result : ''
+    }
+
+    reader.onerror = () => reject(new Error('Failed to read the selected image.'))
+    reader.readAsDataURL(file)
+  })
 
 export default function Account() {
   const [user, setUser] = useState(getCurrentUser())
   const [loading, setLoading] = useState(!getCurrentUser())
   const [error, setError] = useState('')
+  const [saving, setSaving] = useState(false)
+  const [saved, setSaved] = useState(false)
+  const [isEditing, setIsEditing] = useState(false)
+  const fileInputRef = useRef(null)
+  const [form, setForm] = useState(createInitialForm(getCurrentUser()))
 
   useEffect(() => {
     const loadAccount = async () => {
@@ -16,6 +67,7 @@ export default function Account() {
         if (data?.user) {
           setUser(data.user)
           setCurrentUser(data.user)
+          setForm(createInitialForm(data.user))
         }
       } catch (err) {
         setError(err.response?.data?.message || 'Failed to load account.')
@@ -26,54 +78,199 @@ export default function Account() {
 
     if (!user) {
       loadAccount()
+      return
     }
+
+    setForm(createInitialForm(user))
+    setLoading(false)
   }, [user])
+
+  const previewName = useMemo(
+    () => [form.first_name, form.last_name].filter(Boolean).join(' ') || 'Connected user',
+    [form.first_name, form.last_name]
+  )
+
+  const displayedAvatar = form.avatar_url || user?.avatar_url || ''
+
+  const handleChange = (field, value) => {
+    setForm((current) => ({
+      ...current,
+      [field]: value
+    }))
+  }
+
+  const handleStartEditing = () => {
+    setForm(createInitialForm(user))
+    setError('')
+    setSaved(false)
+    setIsEditing(true)
+  }
+
+  const handleCancelEditing = () => {
+    setForm(createInitialForm(user))
+    setError('')
+    setIsEditing(false)
+  }
+
+  const handleSelectAvatar = async (event) => {
+    const file = event.target.files?.[0]
+
+    if (!file) {
+      return
+    }
+
+    if (!file.type.startsWith('image/')) {
+      setError('Please select a valid image file.')
+      return
+    }
+
+    try {
+      const optimizedImage = await resizeImageToDataUrl(file)
+      handleChange('avatar_url', optimizedImage)
+      setError('')
+    } catch (uploadError) {
+      setError(uploadError.message || 'Failed to prepare the selected image.')
+    } finally {
+      event.target.value = ''
+    }
+  }
+
+  const handleSubmit = async (event) => {
+    event.preventDefault()
+    setSaving(true)
+    setSaved(false)
+    setError('')
+
+    try {
+      const payload = {
+        first_name: form.first_name,
+        last_name: form.last_name,
+        email: form.email,
+        address: form.address,
+        avatar_url: form.avatar_url
+      }
+
+      if (form.password.trim()) {
+        payload.password = form.password
+      }
+
+      const { data } = await authApi.put('/users/me', payload)
+
+      if (data?.user) {
+        setUser(data.user)
+        setCurrentUser(data.user)
+        setForm(createInitialForm(data.user))
+      }
+
+      setSaved(true)
+      setIsEditing(false)
+      window.setTimeout(() => setSaved(false), 2200)
+    } catch (err) {
+      setError(err.response?.data?.message || 'Failed to update account.')
+    } finally {
+      setSaving(false)
+    }
+  }
 
   return (
     <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}>
       <div className="max-w-3xl mx-auto">
         <div className="pill mb-2">Account</div>
         <h1 className="text-3xl font-semibold text-slate-900">Your account</h1>
-        <p className="text-slate-500 mt-1">Review the main information of the connected user.</p>
+        <p className="text-slate-500 mt-1">Update your personal info, address, and profile photo.</p>
 
         {error && <div className="card mt-6 text-sm text-red-500">{error}</div>}
 
         {loading ? (
           <div className="card mt-6 text-sm text-slate-500">Loading account...</div>
         ) : (
-          <div className="card mt-6">
-            <div className="flex items-center gap-4">
-              <div className="h-20 w-20 rounded-full bg-gradient-to-br from-primary to-indigo-300 ring-2 ring-indigo-100" />
-              <div>
-                <h2 className="text-2xl font-semibold text-slate-900">
-                  {[user?.first_name, user?.last_name].filter(Boolean).join(' ') || 'Connected user'}
-                </h2>
-                <p className="text-sm text-slate-500">SmartApply AI account</p>
+          <div className="space-y-6 mt-6">
+            <div className="card">
+              <div className="flex flex-col md:flex-row md:items-center gap-5">
+                <div className="relative">
+                  {displayedAvatar ? (
+                    <img
+                      src={displayedAvatar}
+                      alt={previewName}
+                      className="h-24 w-24 rounded-full object-cover ring-4 ring-indigo-100 shadow-lg"
+                    />
+                  ) : (
+                    <div className="h-24 w-24 rounded-full bg-gradient-to-br from-primary to-indigo-300 ring-4 ring-indigo-100 shadow-lg" />
+                  )}
+                  {isEditing && (
+                    <button
+                      type="button"
+                      onClick={() => fileInputRef.current?.click()}
+                      className="absolute -right-2 -bottom-2 inline-flex h-11 w-11 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-700 shadow-soft transition hover:border-primary/30 hover:text-primary"
+                      aria-label="Upload account photo"
+                    >
+                      <Camera size={18} />
+                    </button>
+                  )}
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept="image/*"
+                    onChange={handleSelectAvatar}
+                    className="hidden"
+                  />
+                </div>
+
+                <div className="flex-1">
+                  <h2 className="text-2xl font-semibold text-slate-900">{previewName}</h2>
+                  <p className="text-sm text-slate-500 mt-1">SmartApply AI account</p>
+                  <p className="text-sm text-slate-600 mt-3">
+                    Add a profile photo and keep your address up to date so your account feels complete everywhere in the app.
+                  </p>
+                </div>
+
+                <div className="flex items-center gap-3 flex-wrap">
+                  {saved && (
+                    <span className="pill bg-primary/15 text-primary">Saved</span>
+                  )}
+
+                  {!isEditing ? (
+                    <button
+                      type="button"
+                      onClick={handleStartEditing}
+                      className="btn-primary min-h-11"
+                    >
+                      <Pencil size={16} />
+                      Modify account
+                    </button>
+                  ) : (
+                    <>
+                      <button
+                        type="button"
+                        onClick={handleCancelEditing}
+                        className="btn-secondary min-h-11"
+                      >
+                        <X size={16} />
+                        Cancel
+                      </button>
+                      <button
+                        type="button"
+                        onClick={handleSubmit}
+                        disabled={saving}
+                        className="btn-primary min-h-11"
+                      >
+                        {saving ? <Loader2 className="animate-spin" size={16} /> : <Save size={16} />}
+                        {saving ? 'Saving...' : 'Save changes'}
+                      </button>
+                    </>
+                  )}
+                </div>
               </div>
             </div>
 
-            <div className="grid md:grid-cols-2 gap-4 mt-8">
-              <div className="rounded-2xl border border-slate-100 bg-slate-50/60 p-4">
-                <div className="flex items-center gap-3">
-                  <div className="h-10 w-10 rounded-xl bg-primary/10 text-primary flex items-center justify-center">
-                    <UserRound size={18} />
-                  </div>
-                  <div>
-                    <p className="text-sm text-slate-500">Full name</p>
-                    <p className="font-semibold text-slate-900">
-                      {[user?.first_name, user?.last_name].filter(Boolean).join(' ') || '-'}
-                    </p>
-                  </div>
-                </div>
-              </div>
-
+            <div className="grid md:grid-cols-2 gap-4">
               <div className="rounded-2xl border border-slate-100 bg-slate-50/60 p-4">
                 <div className="flex items-center gap-3">
                   <div className="h-10 w-10 rounded-xl bg-primary/10 text-primary flex items-center justify-center">
                     <Mail size={18} />
                   </div>
                   <div>
-                    <p className="text-sm text-slate-500">Email</p>
+                    <p className="text-sm text-slate-500">Current email</p>
                     <p className="font-semibold text-slate-900">{user?.email || '-'}</p>
                   </div>
                 </div>
@@ -90,7 +287,89 @@ export default function Account() {
                   </div>
                 </div>
               </div>
+
+              <div className="rounded-2xl border border-slate-100 bg-slate-50/60 p-4 md:col-span-2">
+                <div className="flex items-center gap-3">
+                  <div className="h-10 w-10 rounded-xl bg-primary/10 text-primary flex items-center justify-center">
+                    <MapPin size={18} />
+                  </div>
+                  <div>
+                    <p className="text-sm text-slate-500">Saved address</p>
+                    <p className="font-semibold text-slate-900">{user?.address || 'No address yet'}</p>
+                  </div>
+                </div>
+              </div>
             </div>
+
+            {isEditing && (
+              <form className="card space-y-6" onSubmit={handleSubmit}>
+                <div className="flex items-center justify-between gap-4 flex-wrap">
+                  <div>
+                    <h3 className="text-xl font-semibold text-slate-900">Edit account details</h3>
+                    <p className="text-sm text-slate-500 mt-1">Change your information only when you need it.</p>
+                  </div>
+                  <button
+                    type="submit"
+                    disabled={saving}
+                    className="btn-primary min-h-11"
+                  >
+                    {saving ? <Loader2 className="animate-spin" size={16} /> : <Save size={16} />}
+                    {saving ? 'Saving...' : 'Save changes'}
+                  </button>
+                </div>
+
+                <div className="grid md:grid-cols-2 gap-4">
+                  <FormInput
+                    label="First name"
+                    icon={UserRound}
+                    value={form.first_name}
+                    onChange={(event) => handleChange('first_name', event.target.value)}
+                    placeholder="First name"
+                  />
+                  <FormInput
+                    label="Last name"
+                    icon={UserRound}
+                    value={form.last_name}
+                    onChange={(event) => handleChange('last_name', event.target.value)}
+                    placeholder="Last name"
+                  />
+                  <FormInput
+                    label="Email"
+                    icon={Mail}
+                    type="email"
+                    value={form.email}
+                    onChange={(event) => handleChange('email', event.target.value)}
+                    placeholder="email@example.com"
+                  />
+                  <FormInput
+                    label="Address"
+                    icon={MapPin}
+                    value={form.address}
+                    onChange={(event) => handleChange('address', event.target.value)}
+                    placeholder="Your address"
+                  />
+                  <FormInput
+                    label="Photo URL"
+                    icon={Camera}
+                    value={form.avatar_url}
+                    onChange={(event) => handleChange('avatar_url', event.target.value)}
+                    placeholder="https://..."
+                    helper="You can paste an image URL or upload a file with the camera button."
+                    className="md:col-span-2"
+                  />
+                  <FormInput
+                    label="New password"
+                    icon={Shield}
+                    type="password"
+                    value={form.password}
+                    onChange={(event) => handleChange('password', event.target.value)}
+                    placeholder="Leave blank to keep current password"
+                    helper="Minimum 6 characters if you change it."
+                    className="md:col-span-2"
+                  />
+                </div>
+              </form>
+            )}
           </div>
         )}
       </div>

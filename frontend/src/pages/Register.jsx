@@ -1,8 +1,10 @@
+// Renders the Register page and coordinates its UI state.
 import { useState } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import { User, Mail, Lock, ArrowRight } from 'lucide-react'
 import FormInput from '../components/FormInput'
+import BrandLogo from '../components/BrandLogo'
 import { authApi } from '../services/api'
 
 export default function Register() {
@@ -41,6 +43,7 @@ export default function Register() {
         </div>
 
         <div className="relative z-10">
+          <BrandLogo theme="dark" className="mb-10" />
           <p className="pill bg-white/20 text-white">Create your workspace</p>
           <h1 className="text-4xl lg:text-5xl font-semibold leading-tight mt-4">
             Build polished applications in minutes with AI.
@@ -66,9 +69,7 @@ export default function Register() {
                 <h2 className="text-2xl font-semibold mt-2">Create your account</h2>
                 <p className="text-sm text-slate-500 mt-1">No credit card required. 14-day free trial.</p>
               </div>
-              <div className="h-10 w-10 rounded-xl bg-primary/10 text-primary flex items-center justify-center font-semibold">
-                AI
-              </div>
+              <BrandLogo showWordmark={false} className="h-10 w-10" />
             </div>
 
             <form onSubmit={handleSubmit} className="grid grid-cols-1 md:grid-cols-2 gap-4">

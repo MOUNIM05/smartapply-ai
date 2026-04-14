@@ -1,3 +1,4 @@
+// Registers Document.routes routes for the document service.
 import express from "express";
 import { createCVController, getCVsController, exportCVPDFController } from "../controllers/cv.controller.js";
 import { createMotivationLetterController, exportMotivationLetterPDFController } from "../controllers/motivation-letter.controller.js";

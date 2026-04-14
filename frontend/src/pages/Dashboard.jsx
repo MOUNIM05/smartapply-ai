@@ -1,3 +1,4 @@
+// Renders the Dashboard page and coordinates its UI state.
 import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { motion } from 'framer-motion'

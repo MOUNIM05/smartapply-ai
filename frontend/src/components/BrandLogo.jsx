@@ -1,3 +1,4 @@
+// Provides the Brand Logo reusable UI component.
 import fullLogo from '../assets/logo-smartapply-full.png'
 import markLogo from '../assets/logo-smartapply-mark.png'
 

@@ -1,3 +1,4 @@
+// Implements Notification client.service business logic for the document service.
 const NOTIFICATION_SERVICE_URL =
   process.env.NOTIFICATION_SERVICE_URL || "http://notification-service:5005";
 const INTERNAL_SERVICE_TOKEN = process.env.INTERNAL_SERVICE_TOKEN || "change_me";

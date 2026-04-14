@@ -1,9 +1,11 @@
+// Renders the Login page and coordinates its UI state.
 import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import { Mail, Lock, ArrowRight } from 'lucide-react'
 import FormInput from '../components/FormInput'
-import { authApi, setCurrentUser } from '../services/api'
+import BrandLogo from '../components/BrandLogo'
+import { authApi, persistAuthSession, setCurrentUser } from '../services/api'
 
 const blobProps = {
   transition: { duration: 10, repeat: Infinity, repeatType: 'mirror', ease: 'easeInOut' }
@@ -15,6 +17,7 @@ export default function Login() {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
+  const [rememberMe, setRememberMe] = useState(false)
 
   const handleSubmit = async (e) => {
     e.preventDefault()
@@ -26,12 +29,18 @@ export default function Login() {
       const token = data?.access_token || data?.token
 
       if (token) {
-        localStorage.setItem('access_token', token)
+        persistAuthSession({
+          token,
+          refreshToken: data?.refresh_token,
+          userId: data?.user?.id,
+          user: data?.user || null,
+          remember: rememberMe
+        })
       }
 
       const meResponse = await authApi.get('/users/me')
       if (meResponse.data?.user) {
-        setCurrentUser(meResponse.data.user)
+        setCurrentUser(meResponse.data.user, { remember: rememberMe })
       }
 
       navigate('/dashboard')
@@ -61,15 +70,7 @@ export default function Login() {
         </div>
 
         <div className="relative z-10">
-          <div className="flex items-center gap-3 mb-12">
-            <div className="h-12 w-12 rounded-2xl bg-white/10 border border-white/20 flex items-center justify-center text-lg font-bold">
-              SA
-            </div>
-            <div>
-              <p className="text-sm text-slate-200">SmartApply AI</p>
-              <p className="text-2xl font-semibold">Your career copilot</p>
-            </div>
-          </div>
+          <BrandLogo theme="dark" className="mb-12" />
           <div className="space-y-4 max-w-xl">
             <div className="pill bg-white/15 text-white/90">Powered by AI workflows</div>
             <h1 className="text-4xl lg:text-5xl font-semibold leading-tight">
@@ -105,9 +106,7 @@ export default function Login() {
                 <h2 className="text-2xl font-semibold mt-2">Sign in to SmartApply</h2>
                 <p className="text-sm text-slate-500 mt-1">Continue crafting applications with AI.</p>
               </div>
-              <div className="h-10 w-10 rounded-xl bg-primary/10 text-primary flex items-center justify-center font-semibold">
-                AI
-              </div>
+              <BrandLogo showWordmark={false} className="h-10 w-10" />
             </div>
 
             <form onSubmit={handleSubmit} className="space-y-4">
@@ -116,7 +115,12 @@ export default function Login() {
 
               <div className="flex items-center justify-between text-sm text-slate-500">
                 <label className="inline-flex items-center gap-2">
-                  <input type="checkbox" className="rounded-md border-slate-300 text-primary focus:ring-primary" />
+                  <input
+                    type="checkbox"
+                    checked={rememberMe}
+                    onChange={(event) => setRememberMe(event.target.checked)}
+                    className="rounded-md border-slate-300 text-primary focus:ring-primary"
+                  />
                   Remember me
                 </label>
                 <button type="button" className="text-primary font-medium hover:text-indigo-500">Forgot password?</button>

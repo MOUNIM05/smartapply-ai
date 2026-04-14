@@ -1,3 +1,4 @@
+// Bootstraps the Auth service, middleware stack, and routes.
 require("dotenv").config();
 
 const express = require("express");

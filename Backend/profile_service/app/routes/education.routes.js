@@ -1,3 +1,4 @@
+// Registers Education.routes routes for the Profile service.
 const express = require("express");
 
 const { verifyToken } = require("../middlewares/auth.middleware");

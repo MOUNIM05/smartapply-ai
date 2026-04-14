@@ -1,63 +1,62 @@
 # AI Service
 
-Microservice Express pour gerer les modeles IA, les requetes de generation et les reponses de generation.
+Service IA de SmartApplyAI.
 
-## Role du service
+## Responsabilites
 
-- recevoir un prompt depuis le frontend
-- stocker la demande dans MongoDB
-- appeler OpenAI si `OPENAI_API_KEY` est configuree
-- revenir automatiquement au mock local si la cle manque ou si l'appel OpenAI echoue
-- enregistrer la reponse finale dans MongoDB
+- gerer les modeles IA
+- enregistrer les requetes de generation
+- enregistrer les reponses de generation
+- appeler OpenAI si la cle est configuree
+- utiliser un fallback local sinon
+- envoyer des notifications lors des actions IA importantes
 
-## Variables d'environnement
+## Entites principales
 
-Copier `Backend/ai_service/.env.example` vers `Backend/ai_service/.env`, puis renseigner les valeurs locales.
+- `AIModel`
+- `AIGenerationRequest`
+- `AIGenerationResponse`
 
-Variables importantes :
-
-- `PORT`: port du service
-- `MONGO_URI`: connexion MongoDB
-- `JWT_SECRET`: secret pour verifier le token JWT
-- `JWT_EXPIRES_IN`: duree de vie du token
-- `OPENAI_API_KEY`: cle OpenAI. A garder uniquement dans `.env`, jamais dans le frontend ou dans Git
-- `OPENAI_MODEL`: modele OpenAI utilise par defaut
-- `OPENAI_TIMEOUT_MS`: timeout max pour l'appel OpenAI
-
-## Endpoints
+## Routes principales
 
 - `GET /ai-models`
-- `POST /ai-models` admin only
+- `POST /ai-models`
 - `GET /ai-models/:id`
 - `POST /ai-requests`
 - `GET /ai-requests`
 - `GET /ai-requests/:id`
-- `POST /ai-responses` admin only
+- `POST /ai-responses`
 - `GET /ai-responses`
 - `GET /ai-responses/:id`
 
-## Flux de generation
+## Variables importantes
 
-1. Le frontend envoie `prompt`, `requestType` et `contextData` vers `POST /ai-requests`.
-2. Le service stocke la demande dans `AIGenerationRequest`.
-3. Si `OPENAI_API_KEY` existe, le service appelle l'API OpenAI.
-4. Si OpenAI n'est pas configure ou retourne une erreur, le service utilise le fallback mock.
-5. La reponse finale est stockee dans `AIGenerationResponse`.
-6. Le frontend affiche le texte et peut l'envoyer au `document_service` pour generer un PDF.
+- `PORT`
+- `MONGO_URI`
+- `JWT_SECRET`
+- `OPENAI_API_KEY`
+- `OPENAI_MODEL`
+- `OPENAI_TIMEOUT_MS`
 
-## Securite
+## Points importants
 
-- la cle OpenAI ne doit pas etre mise dans `Frontend/`
-- la cle OpenAI ne doit jamais etre committee
-- les appels OpenAI partent uniquement du backend
-- `.env` est ignore par Git
+- le frontend construit le contexte utilisateur puis appelle ce service
+- les reponses peuvent etre structurees pour :
+  - CV
+  - lettre de motivation
+  - email de candidature
+  - adaptation de contenu
+- si OpenAI est indisponible, le fallback local garde l'application fonctionnelle
 
-## Test rapide
+## Scripts
 
-1. Ajouter une vraie `OPENAI_API_KEY` dans `Backend/ai_service/.env`
-2. Relancer le service `ai_service`
-3. Se connecter au frontend
-4. Aller sur la page `Generate CV`
-5. Saisir un contexte ou une offre d'emploi
-6. Cliquer sur `Generate with AI`
-7. Verifier que le texte genere change selon le prompt et qu'un PDF est telecharge pour CV, lettre ou email
+```powershell
+npm run dev
+npm start
+```
+
+## URL locale
+
+```text
+http://localhost:5003
+```

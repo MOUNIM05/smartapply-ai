@@ -1,3 +1,4 @@
+// Renders the Documents page and coordinates its UI state.
 import { useState } from 'react'
 import { motion } from 'framer-motion'
 import { Download, Eye, FileText, Plus } from 'lucide-react'
@@ -26,7 +27,7 @@ export default function Documents() {
         </div>
         <button
           onClick={addMock}
-          className="inline-flex items-center gap-2 bg-primary text-white px-4 py-2 rounded-xl font-semibold shadow-soft hover:shadow-lg transition"
+          className="btn-primary"
         >
           <Plus size={16} />
           Upload
@@ -53,10 +54,10 @@ export default function Documents() {
             <div className="flex items-center gap-2">
               <span className="pill">{doc.type}</span>
               <div className="flex-1" />
-              <button className="h-9 w-9 rounded-xl border border-slate-200 text-slate-600 hover:text-primary hover:border-primary/40 transition flex items-center justify-center">
+              <button className="icon-btn" type="button" aria-label={`Preview ${doc.title}`}>
                 <Eye size={16} />
               </button>
-              <button className="h-9 w-9 rounded-xl border border-slate-200 text-slate-600 hover:text-primary hover:border-primary/40 transition flex items-center justify-center">
+              <button className="icon-btn" type="button" aria-label={`Download ${doc.title}`}>
                 <Download size={16} />
               </button>
             </div>

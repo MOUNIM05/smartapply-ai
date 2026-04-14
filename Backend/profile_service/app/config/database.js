@@ -1,3 +1,4 @@
+// Connects the Profile service to MongoDB.
 const mongoose = require("mongoose");
 
 const connectDatabase = async () => {

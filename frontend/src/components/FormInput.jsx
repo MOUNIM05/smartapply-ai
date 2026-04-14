@@ -1,3 +1,4 @@
+// Provides the Form Input reusable UI component.
 import { forwardRef } from 'react'
 
 const FormInput = forwardRef(({ label, icon: Icon, helper, className = '', ...inputProps }, ref) => {

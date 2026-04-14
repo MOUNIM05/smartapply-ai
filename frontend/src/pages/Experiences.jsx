@@ -1,3 +1,4 @@
+// Renders the Experiences page and coordinates its UI state.
 import { useEffect, useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Briefcase, Trash2, Edit3, Plus, GraduationCap, Sparkles, Languages } from 'lucide-react'
@@ -338,7 +339,7 @@ export default function Experiences() {
             resetForm()
             setShowForm(true)
           }}
-          className="inline-flex items-center gap-2 bg-primary text-white px-4 py-2 rounded-xl shadow-soft hover:shadow-lg transition"
+          className="btn-primary"
         >
           <Plus size={16} />
           Add Experience
@@ -387,13 +388,17 @@ export default function Experiences() {
               <div className="flex items-center gap-2">
                 <button
                   onClick={() => startEdit(exp)}
-                  className="h-9 w-9 rounded-xl border border-slate-200 text-slate-600 hover:text-primary hover:border-primary/40 transition"
+                  className="icon-btn"
+                  type="button"
+                  aria-label={`Edit ${exp.jobTitle}`}
                 >
                   <Edit3 size={16} />
                 </button>
                 <button
                   onClick={() => deleteExp(exp.id)}
-                  className="h-9 w-9 rounded-xl border border-slate-200 text-red-500 hover:border-red-200 hover:bg-red-50 transition"
+                  className="icon-btn-danger"
+                  type="button"
+                  aria-label={`Delete ${exp.jobTitle}`}
                 >
                   <Trash2 size={16} />
                 </button>
@@ -438,7 +443,7 @@ export default function Experiences() {
             <FormInput label="Title" value={newFormation.title} onChange={(e) => setNewFormation((current) => ({ ...current, title: e.target.value }))} />
             <FormInput label="School" value={newFormation.school} onChange={(e) => setNewFormation((current) => ({ ...current, school: e.target.value }))} />
             <FormInput label="Period" value={newFormation.period} onChange={(e) => setNewFormation((current) => ({ ...current, period: e.target.value }))} />
-            <motion.button whileHover={{ scale: 1.01 }} whileTap={{ scale: 0.99 }} className="w-full bg-primary text-white py-2 rounded-xl shadow-soft" type="submit">
+            <motion.button whileHover={{ scale: 1.01 }} whileTap={{ scale: 0.99 }} className="btn-primary w-full" type="submit">
               {editingEducationId ? 'Update formation' : 'Add formation'}
             </motion.button>
           </form>
@@ -471,7 +476,7 @@ export default function Experiences() {
             />
             {editingSkillId && (
               <button
-                className="px-3 py-2 border border-slate-200 text-slate-600 rounded-xl"
+                className="btn-secondary px-3"
                 type="button"
                 onClick={() => {
                   setNewSkill('')
@@ -481,7 +486,7 @@ export default function Experiences() {
                 Cancel
               </button>
             )}
-            <button className="px-3 py-2 bg-primary text-white rounded-xl shadow-soft" type="submit">
+            <button className="btn-primary px-3" type="submit">
               {editingSkillId ? 'Update' : 'Add'}
             </button>
           </form>
@@ -541,7 +546,7 @@ export default function Experiences() {
             <div className="flex gap-2">
               {editingLanguageId && (
                 <button
-                  className="px-3 py-2 border border-slate-200 text-slate-600 rounded-xl"
+                  className="btn-secondary px-3"
                   type="button"
                   onClick={() => {
                     setNewLanguage({ name: '', level: '' })
@@ -551,7 +556,7 @@ export default function Experiences() {
                   Cancel
                 </button>
               )}
-              <button className="px-3 py-2 bg-primary text-white rounded-xl shadow-soft" type="submit">
+              <button className="btn-primary px-3" type="submit">
                 {editingLanguageId ? 'Update' : 'Add'}
               </button>
             </div>
@@ -631,7 +636,7 @@ export default function Experiences() {
                       resetForm()
                       setShowForm(false)
                     }}
-                    className="px-4 py-2 rounded-xl border border-slate-200 text-slate-600 hover:bg-slate-50 transition"
+                    className="btn-secondary"
                   >
                     Cancel
                   </button>
@@ -639,7 +644,7 @@ export default function Experiences() {
                     whileHover={{ scale: 1.02 }}
                     whileTap={{ scale: 0.98 }}
                     type="submit"
-                    className="px-4 py-2 rounded-xl bg-primary text-white font-semibold shadow-soft hover:shadow-lg transition disabled:opacity-60"
+                    className="btn-primary"
                     disabled={!form.jobTitle || !form.company}
                   >
                     {editingId ? 'Update' : 'Save'} experience

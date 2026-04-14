@@ -1,3 +1,4 @@
+// Validates Notification.schema payloads for the Notification service.
 const NOTIFICATION_TYPES = [
   "job_application",
   "job_offer",

@@ -17,6 +17,14 @@ const validateUpdateMeRequest = (payload) => {
     updates.email = payload.email.trim().toLowerCase();
   }
 
+  if (typeof payload?.address === "string") {
+    updates.address = payload.address.trim();
+  }
+
+  if (typeof payload?.avatar_url === "string") {
+    updates.avatar_url = payload.avatar_url.trim();
+  }
+
   if (typeof payload?.password === "string" && payload.password.trim()) {
     if (payload.password.trim().length < 6) {
       const error = new Error("Password must be at least 6 characters");
@@ -42,6 +50,8 @@ const validateCreateUserRequest = (payload) => {
   const email = payload?.email?.trim().toLowerCase();
   const password = payload?.password;
   const role = payload?.role?.trim?.() || "user";
+  const address = payload?.address?.trim?.() || "";
+  const avatar_url = payload?.avatar_url?.trim?.() || "";
 
   if (!first_name || !last_name || !email || !password || typeof password !== "string") {
     const error = new Error("Invalid input");
@@ -66,7 +76,9 @@ const validateCreateUserRequest = (payload) => {
     last_name,
     email,
     password,
-    role
+    role,
+    address,
+    avatar_url
   };
 };
 
@@ -83,6 +95,14 @@ const validateAdminUpdateUserRequest = (payload) => {
 
   if (typeof payload?.email === "string" && payload.email.trim()) {
     updates.email = payload.email.trim().toLowerCase();
+  }
+
+  if (typeof payload?.address === "string") {
+    updates.address = payload.address.trim();
+  }
+
+  if (typeof payload?.avatar_url === "string") {
+    updates.avatar_url = payload.avatar_url.trim();
   }
 
   if (typeof payload?.password === "string" && payload.password.trim()) {

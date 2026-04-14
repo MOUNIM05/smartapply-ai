@@ -1,3 +1,4 @@
+// Provides the Seed admin script for the Auth service.
 require("dotenv").config();
 
 const connectDatabase = require("../config/database");

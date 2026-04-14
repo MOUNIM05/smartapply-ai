@@ -1,7 +1,16 @@
-import { useMemo, useState } from 'react'
+// Renders the Generate CV page and coordinates its UI state.
+import { useEffect, useMemo, useState } from 'react'
 import { motion } from 'framer-motion'
 import { Sparkles, Loader2, Copy, Download, FileText } from 'lucide-react'
-import { aiApi, documentApi, getCurrentUser } from '../services/api'
+import { aiApi, documentApi, getCurrentUser, profileApi } from '../services/api'
+
+const templateOptionsByAction = {
+  cv: [{ id: 'cv-modern-sidebar', label: 'CV Sidebar Pro' }],
+  motivation: [{ id: 'motivation-formal', label: 'Formal Motivation Letter' }],
+  email: [{ id: 'email-prime', label: 'Prime Email' }],
+  improve: [{ id: 'smart-improve', label: 'Smart Improve' }],
+  adapt: [{ id: 'smart-adapt', label: 'Job Adaptation' }]
+}
 
 export default function GenerateCV() {
   const currentUser = getCurrentUser()
@@ -11,8 +20,15 @@ export default function GenerateCV() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [action, setAction] = useState('cv')
-  const [template, setTemplate] = useState('Aurora')
+  const [template, setTemplate] = useState('cv-modern-sidebar')
   const [generated, setGenerated] = useState(false)
+  const [profileData, setProfileData] = useState({
+    profile: null,
+    experiences: [],
+    educations: [],
+    skills: [],
+    languages: []
+  })
 
   const actions = [
     { id: 'cv', label: 'Generate CV' },
@@ -22,7 +38,43 @@ export default function GenerateCV() {
     { id: 'adapt', label: 'Adapt to Job Offer' }
   ]
 
-  const templates = ['Aurora', 'Minimal', 'Gradient', 'Slate']
+  useEffect(() => {
+    const nextTemplate = templateOptionsByAction[action]?.[0]?.id || 'smart-improve'
+    setTemplate(nextTemplate)
+  }, [action])
+
+  useEffect(() => {
+    const loadProfileContext = async () => {
+      try {
+        const [profileResponse, experiencesResponse, educationsResponse, skillsResponse, languagesResponse] =
+          await Promise.all([
+            profileApi.get('/profiles/me').catch(() => ({ data: { profile: null } })),
+            profileApi.get('/experiences/me').catch(() => ({ data: { experiences: [] } })),
+            profileApi.get('/educations/me').catch(() => ({ data: { educations: [] } })),
+            profileApi.get('/skills/me').catch(() => ({ data: { skills: [] } })),
+            profileApi.get('/languages/me').catch(() => ({ data: { languages: [] } }))
+          ])
+
+        setProfileData({
+          profile: profileResponse.data?.profile || null,
+          experiences: experiencesResponse.data?.experiences || [],
+          educations: educationsResponse.data?.educations || [],
+          skills: skillsResponse.data?.skills || [],
+          languages: languagesResponse.data?.languages || []
+        })
+      } catch {
+        setProfileData({
+          profile: null,
+          experiences: [],
+          educations: [],
+          skills: [],
+          languages: []
+        })
+      }
+    }
+
+    loadProfileContext()
+  }, [])
 
   const requestType = useMemo(() => {
     const map = {
@@ -35,6 +87,30 @@ export default function GenerateCV() {
 
     return map[action] || 'other'
   }, [action])
+  const availableTemplates = templateOptionsByAction[action] || templateOptionsByAction.improve
+
+  const profileSnapshot = useMemo(() => ({
+    fullName: [currentUser?.first_name, currentUser?.last_name].filter(Boolean).join(' '),
+    professionalTitle: profileData.profile?.professional_title || '',
+    email: currentUser?.email || '',
+    phone: profileData.profile?.phone || '',
+    address: profileData.profile?.address || currentUser?.address || '',
+    summary: profileData.profile?.summary || '',
+    skills: profileData.skills.map((item) => item.name),
+    languages: profileData.languages.map((item) => `${item.name}${item.level ? ` - ${item.level}` : ''}`),
+    experience: profileData.experiences.map((item) => ({
+      title: item.jobTitle || item.title || '',
+      company: item.company || '',
+      dateRange: [item.startDate, item.endDate].filter(Boolean).join(' - '),
+      bullets: [item.description, ...(Array.isArray(item.skills) ? item.skills : [])].filter(Boolean)
+    })),
+    education: profileData.educations.map((item) => ({
+      title: item.degree || item.title || '',
+      subtitle: item.institution || item.school || '',
+      dateRange: [item.startDate, item.endDate].filter(Boolean).join(' - '),
+      bullets: [item.description].filter(Boolean)
+    }))
+  }), [currentUser, profileData])
 
   const downloadBlob = (blob, filename) => {
     const url = URL.createObjectURL(blob)
@@ -56,13 +132,18 @@ export default function GenerateCV() {
       prompt,
       requestType,
       contextData: {
-        template,
+        templateKey: template,
         jobContext: jd,
-        source: 'frontend-generate-page'
+        source: 'frontend-generate-page',
+        profileSnapshot,
+        outputLanguage: 'fr'
       }
     })
 
-    return data?.response?.rawOutput || ''
+    return {
+      rawOutput: data?.response?.rawOutput || '',
+      structuredOutput: data?.response?.structuredOutput || {}
+    }
   }
 
   const createPdfDocument = async (endpoint, payload, filenamePrefix) => {
@@ -80,40 +161,69 @@ export default function GenerateCV() {
     setError('')
 
     try {
-      const aiOutput = await generateDraftWithAI()
+      const aiGeneration = await generateDraftWithAI()
+      const aiOutput = aiGeneration.rawOutput
+      const structured = aiGeneration.structuredOutput || {}
       setResult(aiOutput)
       setGenerated(true)
 
       if (action === 'cv') {
         await createPdfDocument('/api/documents/cv', {
           title: `CV - ${jd || 'Candidate'} - ${template}`,
-          fullName: [currentUser?.first_name, currentUser?.last_name].filter(Boolean).join(' '),
+          fullName: profileSnapshot.fullName,
           email: currentUser?.email || '',
-          summary: aiOutput || input,
-          skills: input
-            .split(/[\n,]/)
-            .map((item) => item.trim())
-            .filter(Boolean),
+          phone: profileSnapshot.phone,
+          address: profileSnapshot.address,
+          headline: structured.headline || profileSnapshot.professionalTitle || jd,
+          summary: structured.summary || profileSnapshot.summary || aiOutput || input,
+          skills: structured.skills?.length ? structured.skills : profileSnapshot.skills,
+          languages: structured.languages?.length ? structured.languages : profileSnapshot.languages,
+          experience: structured.experience?.length ? structured.experience : profileSnapshot.experience,
+          education: structured.education?.length ? structured.education : profileSnapshot.education,
+          projects: structured.projects?.length ? structured.projects : [],
+          hobbies: structured.hobbies?.length ? structured.hobbies : [],
           targetPosition: jd,
-          jobDescription: input
+          jobDescription: input,
+          templateKey: template,
+          ownerUserId: currentUser?.id
         }, 'cv')
       } else if (action === 'motivation') {
         await createPdfDocument('/api/documents/motivation-letter', {
           title: `Motivation Letter - ${jd || 'Opportunity'}`,
           position: jd,
-          recipientCompany: jd,
-          body: aiOutput || input,
-          background: input,
-          signature: buildSignature()
+          recipientCompany: structured.recipientCompany || jd,
+          recipientName: structured.recipientName || 'Hiring Manager',
+          recipientRole: structured.recipientRole || '',
+          recipientAddress: structured.recipientAddress || '',
+          date: structured.date,
+          greeting: structured.greeting,
+          openingParagraph: structured.openingParagraph,
+          bodyParagraphs: structured.bodyParagraphs || [aiOutput || input],
+          closingParagraph: structured.closingParagraph,
+          senderName: profileSnapshot.fullName,
+          senderHeadline: profileSnapshot.professionalTitle,
+          senderEmail: profileSnapshot.email,
+          signatureName: structured.signatureName || buildSignature(),
+          signatureEmail: structured.signatureEmail || currentUser?.email || '',
+          templateKey: template,
+          ownerUserId: currentUser?.id
         }, 'motivation-letter')
       } else if (action === 'email') {
         await createPdfDocument('/api/documents/email', {
           title: `Application Email - ${jd || 'Opportunity'}`,
-          subject: `Application for ${jd || 'your opportunity'}`,
+          subject: structured.subject || `Application for ${jd || 'your opportunity'}`,
           position: jd,
-          intro: input,
-          body: aiOutput || input,
-          signature: buildSignature()
+          recipientName: structured.recipientName || 'Hiring Team',
+          greeting: structured.greeting,
+          intro: structured.intro || input,
+          bodyParagraphs: structured.bodyParagraphs || [aiOutput || input],
+          callToAction: structured.callToAction,
+          closing: structured.closing,
+          signatureName: structured.signatureName || buildSignature(),
+          signatureTitle: structured.signatureTitle || profileSnapshot.professionalTitle,
+          signatureEmail: structured.signatureEmail || currentUser?.email || '',
+          templateKey: template,
+          ownerUserId: currentUser?.id
         }, 'application-email')
       }
     } catch (err) {
@@ -148,10 +258,6 @@ export default function GenerateCV() {
           <div className="pill mb-2">AI Generator</div>
           <h1 className="text-3xl font-semibold text-slate-900">Craft tailored materials</h1>
           <p className="text-slate-500">Paste a job description or bullet points. SmartApply does the rest.</p>
-        </div>
-        <div className="flex items-center gap-3">
-          <div className="pill bg-accent/10 text-accent border border-accent/40">AI service</div>
-          <div className="pill">Saved in backend</div>
         </div>
       </div>
 
@@ -276,18 +382,18 @@ export default function GenerateCV() {
       </div>
 
       <div className="mt-6">
-        <h3 className="text-lg font-semibold text-slate-900 mb-3">CV Templates</h3>
+        <h3 className="text-lg font-semibold text-slate-900 mb-3">Document Templates</h3>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-          {templates.map((item) => (
+          {availableTemplates.map((item) => (
             <motion.button
-              key={item}
+              key={item.id}
               whileHover={{ scale: 1.02 }}
-              onClick={() => setTemplate(item)}
+              onClick={() => setTemplate(item.id)}
               className={`p-4 rounded-xl border text-sm font-semibold transition ${
-                template === item ? 'border-primary bg-primary/10 text-primary shadow-soft' : 'border-slate-200 bg-white hover:border-primary/40'
+                template === item.id ? 'border-primary bg-primary/10 text-primary shadow-soft' : 'border-slate-200 bg-white hover:border-primary/40'
               }`}
             >
-              {item}
+              {item.label}
             </motion.button>
           ))}
         </div>

@@ -1,3 +1,4 @@
+// Registers Profile.routes routes for the Profile service.
 const express = require("express");
 
 const { verifyToken, requireAdmin } = require("../middlewares/auth.middleware");

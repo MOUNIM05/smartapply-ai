@@ -1,9 +1,10 @@
+// Renders the Profile page and coordinates its UI state.
 import { useEffect, useMemo, useState } from 'react'
 import { motion } from 'framer-motion'
 import { Camera, Phone, MapPin, Save, CheckCircle2, Link as LinkIcon, Trash2, Plus } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import FormInput from '../components/FormInput'
-import { authApi, getCurrentUserRole, profileApi } from '../services/api'
+import { authApi, getAuthToken, getCurrentUserRole, profileApi } from '../services/api'
 
 const container = {
   hidden: { opacity: 0, y: 18 },
@@ -25,6 +26,7 @@ export default function Profile() {
   const [saved, setSaved] = useState(false)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
+  const [showAdminForm, setShowAdminForm] = useState(false)
   const navigate = useNavigate()
   const role = getCurrentUserRole()
   const isAdmin = role === 'admin'
@@ -35,7 +37,7 @@ export default function Profile() {
   const [adminForm, setAdminForm] = useState({ user_id: '', ...emptyProfile })
 
   useEffect(() => {
-    const token = localStorage.getItem('access_token')
+    const token = getAuthToken()
     if (!token) {
       navigate('/login')
       return
@@ -117,6 +119,7 @@ export default function Profile() {
         setProfiles((current) => [data.profile, ...current])
       }
       setAdminForm({ user_id: '', ...emptyProfile })
+      setShowAdminForm(false)
       setSaved(true)
       setTimeout(() => setSaved(false), 2000)
     } catch (err) {
@@ -136,6 +139,11 @@ export default function Profile() {
     }
   }
 
+  const resetAdminForm = () => {
+    setAdminForm({ user_id: '', ...emptyProfile })
+    setShowAdminForm(false)
+  }
+
   if (isAdmin) {
     return (
       <motion.div initial="hidden" animate="show" variants={container} className="min-h-screen">
@@ -146,56 +154,76 @@ export default function Profile() {
               <h1 className="text-3xl font-semibold text-slate-900">Manage all profiles</h1>
               <p className="text-slate-500">As admin, you can review, create and delete user profiles.</p>
             </div>
-            {saved && (
-              <span className="pill bg-primary/15 text-primary flex items-center gap-2">
-                <CheckCircle2 size={16} />
-                Saved
-              </span>
-            )}
+            <div className="flex items-center gap-3 flex-wrap">
+              {saved && (
+                <span className="pill bg-primary/15 text-primary flex items-center gap-2">
+                  <CheckCircle2 size={16} />
+                  Saved
+                </span>
+              )}
+              <button
+                type="button"
+                onClick={() => setShowAdminForm((current) => !current)}
+                className="btn-primary"
+                disabled={usersWithoutProfile.length === 0}
+              >
+                <Plus size={16} />
+                {showAdminForm ? 'Hide form' : 'Add user'}
+              </button>
+            </div>
           </div>
 
           {error && <div className="card text-sm text-red-500">{error}</div>}
 
-          <div className="card">
-            <div className="flex items-center gap-2 mb-4">
-              <Plus size={18} className="text-primary" />
-              <h3 className="text-lg font-semibold text-slate-900">Create profile for a user</h3>
-            </div>
-            <form className="grid md:grid-cols-2 gap-4" onSubmit={submitAdminProfile}>
-              <label className="flex flex-col gap-1.5 text-sm md:col-span-2">
-                <span className="text-slate-600 font-medium">User</span>
-                <select
-                  value={adminForm.user_id}
-                  onChange={(e) => setAdminForm((current) => ({ ...current, user_id: e.target.value }))}
-                  className="bg-white/90 border border-slate-200 rounded-xl px-3 py-3 text-slate-800 outline-none"
-                  required
-                >
-                  <option value="">Select a user</option>
-                  {usersWithoutProfile.map((user) => (
-                    <option key={user.id} value={user.id}>
-                      {[user.first_name, user.last_name].filter(Boolean).join(' ')} - {user.email}
-                    </option>
-                  ))}
-                </select>
-              </label>
-              <FormInput label="Professional title" value={adminForm.professional_title} onChange={(e) => setAdminForm((current) => ({ ...current, professional_title: e.target.value }))} required />
-              <FormInput label="Phone" icon={Phone} value={adminForm.phone} onChange={(e) => setAdminForm((current) => ({ ...current, phone: e.target.value }))} />
-              <FormInput label="Address" icon={MapPin} value={adminForm.address} onChange={(e) => setAdminForm((current) => ({ ...current, address: e.target.value }))} className="md:col-span-2" />
-              <FormInput label="LinkedIn URL" icon={LinkIcon} value={adminForm.linkedin_url} onChange={(e) => setAdminForm((current) => ({ ...current, linkedin_url: e.target.value }))} className="md:col-span-2" />
-              <FormInput label="GitHub URL" icon={LinkIcon} value={adminForm.github_url} onChange={(e) => setAdminForm((current) => ({ ...current, github_url: e.target.value }))} className="md:col-span-2" />
-              <FormInput label="Portfolio URL" icon={LinkIcon} value={adminForm.portfolio_url} onChange={(e) => setAdminForm((current) => ({ ...current, portfolio_url: e.target.value }))} className="md:col-span-2" />
-              <FormInput label="Summary" value={adminForm.summary} onChange={(e) => setAdminForm((current) => ({ ...current, summary: e.target.value }))} className="md:col-span-2" />
-              <div className="md:col-span-2 flex justify-end">
-                <button
-                  type="submit"
-                  disabled={saving || !adminForm.user_id || !adminForm.professional_title}
-                  className="inline-flex items-center gap-2 bg-primary text-white px-4 py-2 rounded-xl font-semibold shadow-soft disabled:opacity-60"
-                >
-                  {saving ? 'Saving...' : 'Create profile'}
-                </button>
+          {showAdminForm && (
+            <div className="card">
+              <div className="flex items-center gap-2 mb-4">
+                <Plus size={18} className="text-primary" />
+                <h3 className="text-lg font-semibold text-slate-900">Create profile for a user</h3>
               </div>
-            </form>
-          </div>
+              <form className="grid md:grid-cols-2 gap-4" onSubmit={submitAdminProfile}>
+                <label className="flex flex-col gap-1.5 text-sm md:col-span-2">
+                  <span className="text-slate-600 font-medium">User</span>
+                  <select
+                    value={adminForm.user_id}
+                    onChange={(e) => setAdminForm((current) => ({ ...current, user_id: e.target.value }))}
+                    className="bg-white/90 border border-slate-200 rounded-xl px-3 py-3 text-slate-800 outline-none"
+                    required
+                  >
+                    <option value="">Select a user</option>
+                    {usersWithoutProfile.map((user) => (
+                      <option key={user.id} value={user.id}>
+                        {[user.first_name, user.last_name].filter(Boolean).join(' ')} - {user.email}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                <FormInput label="Professional title" value={adminForm.professional_title} onChange={(e) => setAdminForm((current) => ({ ...current, professional_title: e.target.value }))} required />
+                <FormInput label="Phone" icon={Phone} value={adminForm.phone} onChange={(e) => setAdminForm((current) => ({ ...current, phone: e.target.value }))} />
+                <FormInput label="Address" icon={MapPin} value={adminForm.address} onChange={(e) => setAdminForm((current) => ({ ...current, address: e.target.value }))} className="md:col-span-2" />
+                <FormInput label="LinkedIn URL" icon={LinkIcon} value={adminForm.linkedin_url} onChange={(e) => setAdminForm((current) => ({ ...current, linkedin_url: e.target.value }))} className="md:col-span-2" />
+                <FormInput label="GitHub URL" icon={LinkIcon} value={adminForm.github_url} onChange={(e) => setAdminForm((current) => ({ ...current, github_url: e.target.value }))} className="md:col-span-2" />
+                <FormInput label="Portfolio URL" icon={LinkIcon} value={adminForm.portfolio_url} onChange={(e) => setAdminForm((current) => ({ ...current, portfolio_url: e.target.value }))} className="md:col-span-2" />
+                <FormInput label="Summary" value={adminForm.summary} onChange={(e) => setAdminForm((current) => ({ ...current, summary: e.target.value }))} className="md:col-span-2" />
+                <div className="md:col-span-2 flex justify-end gap-3">
+                  <button
+                    type="button"
+                    onClick={resetAdminForm}
+                    className="btn-secondary"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={saving || !adminForm.user_id || !adminForm.professional_title}
+                    className="btn-primary"
+                  >
+                    {saving ? 'Saving...' : 'Create profile'}
+                  </button>
+                </div>
+              </form>
+            </div>
+          )}
 
           <div className="space-y-4">
             {loading && <div className="card text-sm text-slate-500">Loading profiles...</div>}
@@ -214,7 +242,7 @@ export default function Profile() {
                 </div>
                 <button
                   onClick={() => deleteAdminProfile(profile.id)}
-                  className="inline-flex items-center gap-2 px-3 py-2 rounded-xl border border-red-200 text-red-500 hover:bg-red-50 transition"
+                  className="btn-danger"
                 >
                   <Trash2 size={16} />
                   Delete
@@ -253,7 +281,7 @@ export default function Profile() {
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.97 }}
               onClick={submitProfile}
-              className="inline-flex items-center gap-2 bg-primary text-white px-4 py-2 rounded-xl font-semibold shadow-soft"
+              className="btn-primary"
               disabled={saving || loading}
             >
               {saving ? 'Saving...' : 'Save changes'}
@@ -275,7 +303,7 @@ export default function Profile() {
                 className="relative mb-4"
               >
                 <div className="h-28 w-28 rounded-full bg-gradient-to-br from-primary via-indigo-500 to-purple-500 shadow-xl" />
-                <button className="absolute -right-2 -bottom-2 h-10 w-10 rounded-full bg-white/80 backdrop-blur shadow-soft flex items-center justify-center border border-slate-100">
+                <button className="absolute -right-2 -bottom-2 inline-flex h-10 w-10 items-center justify-center rounded-full border border-slate-100 bg-white/80 backdrop-blur shadow-soft">
                   <Camera size={16} className="text-slate-700" />
                 </button>
               </motion.div>

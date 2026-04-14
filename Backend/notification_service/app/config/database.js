@@ -1,3 +1,4 @@
+// Connects the Notification service to MongoDB.
 const mongoose = require("mongoose");
 
 const connectDatabase = async () => {

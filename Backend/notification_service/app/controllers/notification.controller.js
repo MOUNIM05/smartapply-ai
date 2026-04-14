@@ -1,3 +1,4 @@
+// Handles Notification.controller HTTP requests for the Notification service.
 const {
   validateCreateInternalNotificationRequest,
   validateListNotificationsQuery

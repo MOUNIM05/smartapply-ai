@@ -1,3 +1,4 @@
+// Centralizes Api logic for the frontend.
 import axios from 'axios'
 
 const authApi = axios.create({
@@ -20,22 +21,71 @@ const documentApi = axios.create({
   baseURL: 'http://localhost:5004'
 })
 
-const clearSession = () => {
-  localStorage.removeItem('access_token')
-  localStorage.removeItem('refresh_token')
-  localStorage.removeItem('token')
-  localStorage.removeItem('user_id')
-  localStorage.removeItem('current_user')
+const notificationApi = axios.create({
+  baseURL: 'http://localhost:5005'
+})
+
+const sessionKeys = ['access_token', 'refresh_token', 'token', 'user_id', 'current_user']
+
+const clearStoredSession = (storage) => {
+  sessionKeys.forEach((key) => storage.removeItem(key))
 }
 
-const setCurrentUser = (user) => {
+const hasStoredSession = (storage) =>
+  ['access_token', 'token', 'current_user'].some((key) => Boolean(storage.getItem(key)))
+
+const getActiveStorage = () => {
+  if (hasStoredSession(localStorage)) return localStorage
+  if (hasStoredSession(sessionStorage)) return sessionStorage
+  return localStorage
+}
+
+const clearSession = () => {
+  clearStoredSession(localStorage)
+  clearStoredSession(sessionStorage)
+  window.dispatchEvent(new CustomEvent('smartapply:user-changed', { detail: null }))
+}
+
+const persistAuthSession = ({ token, refreshToken, user, userId, remember = false }) => {
+  const storage = remember ? localStorage : sessionStorage
+  const otherStorage = remember ? sessionStorage : localStorage
+
+  clearStoredSession(otherStorage)
+
+  if (token) {
+    storage.setItem('access_token', token)
+  }
+
+  if (refreshToken) {
+    storage.setItem('refresh_token', refreshToken)
+  }
+
+  if (userId) {
+    storage.setItem('user_id', userId)
+  }
+
+  if (user) {
+    storage.setItem('current_user', JSON.stringify(user))
+  }
+
+  window.dispatchEvent(new CustomEvent('smartapply:user-changed', { detail: user || null }))
+}
+
+const setCurrentUser = (user, options = {}) => {
   if (!user) return
-  localStorage.setItem('current_user', JSON.stringify(user))
+  const storage =
+    typeof options.remember === 'boolean'
+      ? (options.remember ? localStorage : sessionStorage)
+      : getActiveStorage()
+
+  storage.setItem('current_user', JSON.stringify(user))
+  window.dispatchEvent(new CustomEvent('smartapply:user-changed', { detail: user }))
 }
 
 const getCurrentUser = () => {
   try {
-    const raw = localStorage.getItem('current_user')
+    const storage = getActiveStorage()
+    const raw = storage.getItem('current_user')
     return raw ? JSON.parse(raw) : null
   } catch {
     return null
@@ -50,8 +100,13 @@ const getCurrentUserName = () => {
   return [user.first_name, user.last_name].filter(Boolean).join(' ') || user.email || 'Connected user'
 }
 
+const getAuthToken = () => {
+  const storage = getActiveStorage()
+  return storage.getItem('access_token') || storage.getItem('token')
+}
+
 const attachAuthHeader = (config) => {
-  const token = localStorage.getItem('access_token') || localStorage.getItem('token')
+  const token = getAuthToken()
   if (token) {
     config.headers.Authorization = `Bearer ${token}`
   }
@@ -66,10 +121,24 @@ const handleAuthError = (err) => {
   return Promise.reject(err)
 }
 
-;[authApi, profileApi, jobApi, aiApi, documentApi].forEach((client) => {
+;[authApi, profileApi, jobApi, aiApi, documentApi, notificationApi].forEach((client) => {
   client.interceptors.request.use(attachAuthHeader)
   client.interceptors.response.use((res) => res, handleAuthError)
 })
 
-export { authApi, profileApi, jobApi, aiApi, documentApi, clearSession, setCurrentUser, getCurrentUser, getCurrentUserRole, getCurrentUserName }
+export {
+  authApi,
+  profileApi,
+  jobApi,
+  aiApi,
+  documentApi,
+  notificationApi,
+  clearSession,
+  persistAuthSession,
+  setCurrentUser,
+  getCurrentUser,
+  getAuthToken,
+  getCurrentUserRole,
+  getCurrentUserName
+}
 export default authApi

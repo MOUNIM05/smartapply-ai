@@ -1,3 +1,4 @@
+// Registers Auth.routes routes for the Auth service.
 const express = require("express");
 
 const { loginController, registerController, logoutController } = require("../controllers/auth.controller");

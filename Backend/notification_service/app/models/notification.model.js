@@ -1,3 +1,4 @@
+// Defines the Notification.model data model for the Notification service.
 const mongoose = require("mongoose");
 
 const notificationSchema = new mongoose.Schema(

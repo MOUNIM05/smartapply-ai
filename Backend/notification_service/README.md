@@ -1,45 +1,16 @@
 # Notification Service
 
-Le `notification_service` centralise les notifications utilisateur de SmartApply AI.
+Service de notifications de SmartApplyAI.
 
 ## Responsabilites
 
-- enregistrer les notifications envoyees par les autres services backend
-- exposer les notifications a l'utilisateur connecte
+- recevoir les notifications internes depuis les autres services
+- stocker les notifications utilisateur
+- lister les notifications de l'utilisateur connecte
 - marquer une notification comme lue
-- marquer toutes les notifications comme lues
+- tout marquer comme lu
 - archiver une notification
-- conserver les metadonnees de contexte
-
-## Integration plateforme
-
-Le service est utilise par:
-
-- `auth_service`
-- `profile_service`
-- `job_service`
-- `ai_service`
-- `document_service`
-
-Dans le frontend, les notifications sont visibles:
-
-- dans la cloche de la navbar
-- dans la page `Notifications`
-- avec recherche, filtres et archivage
-
-## Variables d'environnement
-
-Exemple disponible dans :
-
-- `.env.example`
-
-Variables principales :
-
-- `PORT`
-- `MONGO_URI`
-- `JWT_SECRET`
-- `JWT_EXPIRES_IN`
-- `INTERNAL_SERVICE_TOKEN`
+- permettre la consultation admin
 
 ## Routes principales
 
@@ -50,17 +21,31 @@ Variables principales :
 - `PATCH /notifications/:id/archive`
 - `GET /notifications`
 
+## Services integres
+
+Le service est utilise par :
+
+- `auth_service`
+- `profile_service`
+- `job_service`
+- `ai_service`
+- `document_service`
+
 ## Securite
 
-- `POST /notifications/internal` est reserve aux autres services backend via `x-internal-service-token`
-- les routes utilisateur utilisent le JWT Bearer
-- la route `GET /notifications` est reservee aux admins
+- `POST /notifications/internal` utilise `x-internal-service-token`
+- les routes utilisateur utilisent JWT Bearer
+- `GET /notifications` est reserve aux admins
 
-## Build Docker
+## Scripts
 
-Depuis la racine du projet :
+```powershell
+npm run dev
+npm start
+```
 
-```bash
-docker compose build notification-service
-docker compose up -d notification-service
+## URL locale
+
+```text
+http://localhost:5005
 ```

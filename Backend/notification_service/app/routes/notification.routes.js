@@ -1,3 +1,4 @@
+// Registers Notification.routes routes for the Notification service.
 const express = require("express");
 
 const {

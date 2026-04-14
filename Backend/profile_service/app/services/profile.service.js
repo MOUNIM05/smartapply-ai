@@ -13,6 +13,8 @@ const serializeUser = (user) =>
         first_name: user.first_name,
         last_name: user.last_name,
         email: user.email,
+        address: user.address,
+        avatar_url: user.avatar_url,
         role: user.role
       }
     : null;
