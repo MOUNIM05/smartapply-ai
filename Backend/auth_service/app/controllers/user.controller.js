@@ -63,7 +63,7 @@ const getUserByIdController = async (req, res, next) => {
 const createUserController = async (req, res, next) => {
   try {
     const payload = validateCreateUserRequest(req.body);
-    const result = await createUserByAdmin(payload);
+    const result = await createUserByAdmin(payload, req.user.userId);
     res.status(201).json(result);
   } catch (error) {
     next(error);
@@ -73,7 +73,7 @@ const createUserController = async (req, res, next) => {
 const updateUserByIdController = async (req, res, next) => {
   try {
     const updates = validateAdminUpdateUserRequest(req.body);
-    const result = await updateUserByAdmin(req.params.id, updates);
+    const result = await updateUserByAdmin(req.params.id, updates, req.user.userId);
     res.status(200).json(result);
   } catch (error) {
     next(error);
@@ -82,7 +82,7 @@ const updateUserByIdController = async (req, res, next) => {
 
 const deleteUserByIdController = async (req, res, next) => {
   try {
-    const result = await deleteUserByAdmin(req.params.id);
+    const result = await deleteUserByAdmin(req.params.id, req.user.userId);
     res.status(200).json(result);
   } catch (error) {
     next(error);

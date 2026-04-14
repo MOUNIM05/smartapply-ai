@@ -18,7 +18,7 @@ const {
 const createJobOfferController = async (req, res, next) => {
   try {
     const payload = validateCreateJobOfferRequest(req.body);
-    const result = await createJobOffer(payload);
+    const result = await createJobOffer(req.user.userId, payload);
     res.status(201).json(result);
   } catch (error) {
     next(error);
@@ -46,7 +46,7 @@ const getJobOfferByIdController = async (req, res, next) => {
 const createApplicationController = async (req, res, next) => {
   try {
     const payload = validateCreateApplicationRequest(req.body);
-    const result = await createApplication(payload);
+    const result = await createApplication(req.user.userId, payload);
     res.status(201).json(result);
   } catch (error) {
     next(error);

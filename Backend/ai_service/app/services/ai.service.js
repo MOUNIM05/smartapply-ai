@@ -5,6 +5,7 @@
 const { AIModel } = require("../models/ai-model.model");
 const { AIGenerationRequest } = require("../models/ai-generation-request.model");
 const { AIGenerationResponse } = require("../models/ai-generation-response.model");
+const { sendNotification } = require("./notification-client.service");
 
 const DEFAULT_AI_MODEL = {
   name: "SmartApply Assistant",
@@ -176,8 +177,22 @@ const generateWithOpenAI = async ({ requestType, prompt, contextData }) => {
   }
 };
 
-const createAIModel = async (payload) => {
+const createAIModel = async (actorUserId, payload) => {
   const aiModel = await AIModel.create(payload);
+
+  await sendNotification({
+    userId: String(actorUserId),
+    title: "Modele IA ajoute",
+    message: `Le modele ${aiModel.name} (${aiModel.version}) a ete ajoute.`,
+    type: "system",
+    event: "ai_model_created",
+    sourceService: "ai-service",
+    metadata: {
+      aiModelId: String(aiModel._id),
+      provider: aiModel.provider,
+      version: aiModel.version
+    }
+  });
 
   return {
     message: "AI model created successfully",
@@ -245,6 +260,21 @@ const createAIGenerationRequest = async (requesterId, payload) => {
     status: "completed"
   });
 
+  await sendNotification({
+    userId: String(requesterId),
+    title: "Generation IA terminee",
+    message: `Votre demande IA de type ${payload.requestType} a ete traitee.`,
+    type: "system",
+    event: "ai_generation_completed",
+    sourceService: "ai-service",
+    metadata: {
+      requestId: String(request._id),
+      responseId: String(response._id),
+      requestType: payload.requestType,
+      aiModelId: String(aiModel._id)
+    }
+  });
+
   return {
     message: "AI generation request created successfully",
     request: serializeRequest(request),
@@ -281,7 +311,7 @@ const getAIGenerationRequestById = async (requestId, user) => {
   };
 };
 
-const createAIGenerationResponse = async (payload) => {
+const createAIGenerationResponse = async (actorUserId, payload) => {
   const request = await AIGenerationRequest.findById(payload.requestId);
 
   if (!request) {
@@ -299,6 +329,20 @@ const createAIGenerationResponse = async (payload) => {
   }
 
   const response = await AIGenerationResponse.create(payload);
+
+  await sendNotification({
+    userId: String(request.requesterId),
+    title: "Reponse IA disponible",
+    message: "Une nouvelle reponse IA a ete ajoutee a votre demande.",
+    type: "system",
+    event: "ai_response_created",
+    sourceService: "ai-service",
+    metadata: {
+      requestId: String(request._id),
+      responseId: String(response._id),
+      actorUserId: String(actorUserId)
+    }
+  });
 
   return {
     message: "AI generation response created successfully",

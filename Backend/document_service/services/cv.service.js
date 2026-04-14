@@ -4,6 +4,7 @@
  */
 import CV from "../models/cv.model.js";
 import { getCVTemplateById, getFallbackCVTemplate } from "./cv-template.service.js";
+import { resolveNotificationUserId, sendNotification } from "./notification-client.service.js";
 
 export const createCV = async (cvData) => {
   const cv = new CV();
@@ -12,12 +13,27 @@ export const createCV = async (cvData) => {
     : await getFallbackCVTemplate();
 
   cv.generate(cvData, selectedTemplate);
+  cv.ownerUserId = resolveNotificationUserId(cvData);
 
   if (cvData.jobDescription) {
     cv.adaptToJob(cvData.jobDescription);
   }
 
   await cv.save();
+
+  await sendNotification({
+    userId: cv.ownerUserId,
+    title: "CV genere",
+    message: `Votre document ${cv.title} a ete genere.`,
+    type: "system",
+    event: "document_cv_created",
+    sourceService: "document-service",
+    metadata: {
+      documentId: String(cv.id),
+      documentType: cv.type
+    }
+  });
+
   return cv;
 };
 

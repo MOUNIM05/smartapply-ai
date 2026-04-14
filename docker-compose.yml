@@ -21,6 +21,7 @@ services:
       - profile-service
       - job-service
       - ai-service
+      - notification-service
       - document-service
     restart: unless-stopped
 
@@ -102,6 +103,25 @@ services:
       - mongodb
     restart: unless-stopped
 
+  # Service notification: stocke les notifications internes et utilisateur.
+  notification-service:
+    build:
+      context: ./Backend/notification_service
+      dockerfile: Dockerfile
+    container_name: cv-ai-notification-service
+    ports:
+      # API notification accessible depuis la machine locale.
+      - "5005:5005"
+    env_file:
+      # Variables sensibles du service notification: ne pas pousser le fichier .env.
+      - ./Backend/notification_service/.env
+    volumes:
+      - ./Backend/notification_service:/app
+      - /app/node_modules
+    depends_on:
+      - mongodb
+    restart: unless-stopped
+
   # Service document: genere les PDF de CV, lettres de motivation et emails.
   document-service:
     build:
@@ -115,6 +135,9 @@ services:
       # Configuration directe du service document.
       PORT: 5002
       MONGO_URI: mongodb://mongodb:27017/document-service
+      NOTIFICATION_SERVICE_URL: http://notification-service:5005
+      INTERNAL_SERVICE_TOKEN: change_me
+      NOTIFICATION_TIMEOUT_MS: 3000
     volumes:
       - ./Backend/document_service:/app
       - /app/node_modules

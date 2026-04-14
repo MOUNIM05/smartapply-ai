@@ -4,6 +4,7 @@
  */
 import { createApplicationEmail, getApplicationEmailById } from "../services/application-email.service.js";
 import { streamPDFToResponse } from "../services/pdf.service.js";
+import { sendNotification } from "../services/notification-client.service.js";
 
 export const createApplicationEmailController = async (req, res, next) => {
   try {
@@ -25,6 +26,20 @@ export const exportEmailPDFController = async (req, res, next) => {
         message: "Application email not found"
       });
     }
+
+    await sendNotification({
+      userId: email.ownerUserId,
+      title: "Email de candidature exporte",
+      message: `Le document ${email.title} a ete exporte en PDF.`,
+      type: "system",
+      event: "document_application_email_exported",
+      sourceService: "document-service",
+      metadata: {
+        documentId: String(email.id),
+        documentType: email.type
+      }
+    });
+
     streamPDFToResponse(email.exportPDF(), res, `ApplicationEmail_${email.id}`);
   } catch (error) {
     next(error);

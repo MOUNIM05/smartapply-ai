@@ -4,6 +4,7 @@
  */
 import { createCV, getAllCVs, getCVById } from "../services/cv.service.js";
 import { streamPDFToResponse } from "../services/pdf.service.js";
+import { sendNotification } from "../services/notification-client.service.js";
 
 export const createCVController = async (req, res, next) => {
   try {
@@ -37,6 +38,20 @@ export const exportCVPDFController = async (req, res, next) => {
         message: "CV not found"
       });
     }
+
+    await sendNotification({
+      userId: cv.ownerUserId,
+      title: "CV exporte",
+      message: `Le document ${cv.title} a ete exporte en PDF.`,
+      type: "system",
+      event: "document_cv_exported",
+      sourceService: "document-service",
+      metadata: {
+        documentId: String(cv.id),
+        documentType: cv.type
+      }
+    });
+
     streamPDFToResponse(cv.exportPDF(), res, `CV_${cv.id}`);
   } catch (error) {
     next(error);

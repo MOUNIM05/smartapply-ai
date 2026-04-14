@@ -4,6 +4,7 @@
  */
 const { User } = require("../models/auth.model");
 const { hashPassword } = require("./auth.service");
+const { sendNotification } = require("./notification-client.service");
 
 const sanitizeUser = (user) => ({
   id: user._id,
@@ -66,6 +67,18 @@ const updateCurrentUser = async (userId, updates) => {
 
   await user.save();
 
+  await sendNotification({
+    userId: String(user._id),
+    title: "Compte mis a jour",
+    message: "Les informations de votre compte ont ete mises a jour.",
+    type: "system",
+    event: "user_updated",
+    sourceService: "auth-service",
+    metadata: {
+      updatedFields: Object.keys(updates)
+    }
+  });
+
   return {
     message: "Profile updated successfully",
     user: sanitizeUser(user)
@@ -73,7 +86,19 @@ const updateCurrentUser = async (userId, updates) => {
 };
 
 const deleteCurrentUser = async (userId) => {
-  await findUserByIdOrThrow(userId);
+  const user = await findUserByIdOrThrow(userId);
+
+  await sendNotification({
+    userId: String(user._id),
+    title: "Compte supprime",
+    message: "Votre compte a ete supprime.",
+    type: "system",
+    event: "user_deleted",
+    sourceService: "auth-service",
+    metadata: {
+      email: user.email
+    }
+  });
 
   await User.findByIdAndDelete(userId);
 
@@ -98,7 +123,7 @@ const getUserById = async (userId) => {
   };
 };
 
-const createUserByAdmin = async ({ first_name, last_name, email, password, role }) => {
+const createUserByAdmin = async ({ first_name, last_name, email, password, role }, actorUserId) => {
   const existingUser = await User.findOne({ email });
 
   if (existingUser) {
@@ -117,13 +142,27 @@ const createUserByAdmin = async ({ first_name, last_name, email, password, role 
     role
   });
 
+  await sendNotification({
+    userId: String(user._id),
+    title: "Compte cree",
+    message: "Un administrateur a cree votre compte.",
+    type: "system",
+    event: "user_created_by_admin",
+    sourceService: "auth-service",
+    metadata: {
+      email: user.email,
+      role: user.role,
+      actorUserId: String(actorUserId)
+    }
+  });
+
   return {
     message: "User created successfully",
     user: sanitizeUser(user)
   };
 };
 
-const updateUserByAdmin = async (userId, updates) => {
+const updateUserByAdmin = async (userId, updates, actorUserId) => {
   const user = await findUserByIdOrThrow(userId);
 
   if (updates.email && updates.email !== user.email) {
@@ -158,14 +197,40 @@ const updateUserByAdmin = async (userId, updates) => {
 
   await user.save();
 
+  await sendNotification({
+    userId: String(user._id),
+    title: "Compte mis a jour",
+    message: "Un administrateur a mis a jour votre compte.",
+    type: "system",
+    event: "user_updated_by_admin",
+    sourceService: "auth-service",
+    metadata: {
+      updatedFields: Object.keys(updates),
+      actorUserId: String(actorUserId)
+    }
+  });
+
   return {
     message: "User updated successfully",
     user: sanitizeUser(user)
   };
 };
 
-const deleteUserByAdmin = async (userId) => {
-  await findUserByIdOrThrow(userId);
+const deleteUserByAdmin = async (userId, actorUserId) => {
+  const user = await findUserByIdOrThrow(userId);
+
+  await sendNotification({
+    userId: String(user._id),
+    title: "Compte supprime",
+    message: "Un administrateur a supprime votre compte.",
+    type: "system",
+    event: "user_deleted_by_admin",
+    sourceService: "auth-service",
+    metadata: {
+      actorUserId: String(actorUserId),
+      email: user.email
+    }
+  });
 
   await User.findByIdAndDelete(userId);
 

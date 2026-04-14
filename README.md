@@ -16,12 +16,14 @@ Services backend:
 - `job_service`: offres d'emploi et candidatures.
 - `ai_service`: generation et adaptation de contenu texte a partir des prompts utilisateur.
 - `document_service`: generation et export des CV, lettres de motivation, emails et PDF.
+- `notification_service`: notifications plateforme, lecture, archivage et consultation detaillee.
 
 Services Docker:
 
 - `frontend`: interface React/Vite.
 - `mongodb`: base de donnees partagee.
 - `mongo-express`: interface web pour consulter MongoDB.
+- `notification-service`: service de notifications utilisateur.
 
 ## Prerequis
 
@@ -77,6 +79,7 @@ Des exemples sont disponibles:
 - `Backend/profile_service/.env.example`
 - `Backend/job_service/.env.example`
 - `Backend/ai_service/.env.example`
+- `Backend/notification_service/.env.example`
 
 Pour configurer le projet, copier chaque fichier example vers `.env`, puis remplacer les valeurs `change_me`.
 
@@ -132,8 +135,39 @@ Ports principaux:
 - Job service: `http://localhost:5002`
 - AI service: `http://localhost:5003`
 - Document service: `http://localhost:5004`
+- Notification service: `http://localhost:5005`
 - MongoDB: `localhost:27017`
 - Mongo Express: `http://localhost:8081`
+
+## Notifications plateforme
+
+Le projet inclut maintenant un `notification_service` dedie pour suivre les actions importantes de la plateforme.
+
+Fonctionnalites backend:
+
+- creation automatique de notifications apres les actions metier importantes
+- consultation des notifications utilisateur
+- marquage individuel ou global comme lues
+- archivage des notifications
+- conservation des metadonnees liees a l'action d'origine
+
+Actions couvertes:
+
+- authentification et gestion utilisateur
+- creation et mise a jour de profil
+- experiences, formations, competences et langues
+- creation d'offres et candidatures
+- generations IA
+- generation et export de documents
+
+Fonctionnalites frontend:
+
+- cloche de notifications dans la barre superieure
+- compteur des notifications non lues
+- page `Notifications` avec detail complet
+- recherche textuelle
+- filtres `Tout`, `Non lues`, `Archives`
+- action d'archivage depuis l'interface
 
 ## Lancement frontend en local
 
@@ -185,6 +219,7 @@ Services appeles par le frontend:
 
 - `ai_service`: `http://localhost:5003`
 - `document_service`: `http://localhost:5004`
+- `notification_service`: `http://localhost:5005`
 
 Le resultat texte reste visible dans l'interface, et un fichier PDF est telecharge automatiquement pour les trois actions documentaires.
 

@@ -29,7 +29,7 @@ const registerController = async (req, res, next) => {
 
 const logoutController = async (req, res, next) => {
   try {
-    const result = await logout();
+    const result = await logout(req.headers.authorization);
     res.status(200).json(result);
   } catch (error) {
     next(error);

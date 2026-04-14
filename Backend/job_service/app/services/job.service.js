@@ -4,6 +4,7 @@
  */
 const { Application } = require("../models/application.model");
 const { JobOffer } = require("../models/job-offer.model");
+const { sendNotification } = require("./notification-client.service");
 
 const serializeJobOffer = (jobOffer) => ({
   id: jobOffer._id,
@@ -27,8 +28,22 @@ const serializeApplication = (application) => ({
   updatedAt: application.updatedAt
 });
 
-const createJobOffer = async (payload) => {
+const createJobOffer = async (actorUserId, payload) => {
   const jobOffer = await JobOffer.create(payload);
+
+  await sendNotification({
+    userId: String(actorUserId),
+    title: "Offre d'emploi creee",
+    message: `L'offre ${jobOffer.jobTitle} chez ${jobOffer.company} a ete creee.`,
+    type: "job_offer",
+    event: "job_offer_created",
+    sourceService: "job-service",
+    metadata: {
+      jobOfferId: String(jobOffer._id),
+      company: jobOffer.company,
+      jobTitle: jobOffer.jobTitle
+    }
+  });
 
   return {
     message: "Job offer created successfully",
@@ -58,7 +73,7 @@ const getJobOfferById = async (jobOfferId) => {
   };
 };
 
-const createApplication = async ({ profileId, jobOfferId, status }) => {
+const createApplication = async (actorUserId, { profileId, jobOfferId, status }) => {
   const jobOffer = await JobOffer.findById(jobOfferId);
 
   if (!jobOffer) {
@@ -71,6 +86,23 @@ const createApplication = async ({ profileId, jobOfferId, status }) => {
     profileId,
     jobOfferId,
     status
+  });
+
+  await sendNotification({
+    userId: actorUserId,
+    title: "Candidature envoyee",
+    message: `Votre candidature pour ${jobOffer.jobTitle} chez ${jobOffer.company} a ete enregistree.`,
+    type: "job_application",
+    event: "application_created",
+    sourceService: "job-service",
+    metadata: {
+      applicationId: String(application._id),
+      profileId: String(profileId),
+      jobOfferId: String(jobOfferId),
+      status: application.status,
+      jobTitle: jobOffer.jobTitle,
+      company: jobOffer.company
+    }
   });
 
   return {

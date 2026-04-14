@@ -4,6 +4,7 @@
  */
 const { Profile } = require("../models/profile.model");
 const { Language } = require("../models/language.model");
+const { sendNotification } = require("./notification-client.service");
 
 const serializeLanguage = (language) => ({
   id: language._id,
@@ -59,6 +60,19 @@ const createLanguage = async (userId, payload) => {
     ...payload
   });
 
+  await sendNotification({
+    userId: String(userId),
+    title: "Langue ajoutee",
+    message: `La langue ${language.name} a ete ajoutee a votre profil.`,
+    type: "language",
+    event: "language_created",
+    sourceService: "profile-service",
+    metadata: {
+      profileId: String(profile._id),
+      languageId: String(language._id)
+    }
+  });
+
   return {
     message: "Language created successfully",
     language: serializeLanguage(language)
@@ -75,6 +89,20 @@ const updateLanguage = async (userId, languageId, updates) => {
   Object.assign(language, updates);
   await language.save();
 
+  await sendNotification({
+    userId: String(userId),
+    title: "Langue mise a jour",
+    message: `La langue ${language.name} a ete mise a jour.`,
+    type: "language",
+    event: "language_updated",
+    sourceService: "profile-service",
+    metadata: {
+      profileId: String(profile._id),
+      languageId: String(language._id),
+      updatedFields: Object.keys(updates)
+    }
+  });
+
   return {
     message: "Language updated successfully",
     language: serializeLanguage(language)
@@ -83,8 +111,21 @@ const updateLanguage = async (userId, languageId, updates) => {
 
 const deleteLanguage = async (userId, languageId) => {
   const profile = await getProfileByUserIdOrThrow(userId);
-  await getLanguageByIdForProfileOrThrow(profile._id, languageId);
+  const language = await getLanguageByIdForProfileOrThrow(profile._id, languageId);
   await Language.findByIdAndDelete(languageId);
+
+  await sendNotification({
+    userId: String(userId),
+    title: "Langue supprimee",
+    message: `La langue ${language.name} a ete supprimee de votre profil.`,
+    type: "language",
+    event: "language_deleted",
+    sourceService: "profile-service",
+    metadata: {
+      profileId: String(profile._id),
+      languageId: String(language._id)
+    }
+  });
 
   return {
     message: "Language deleted successfully"

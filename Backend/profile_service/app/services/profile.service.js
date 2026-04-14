@@ -4,6 +4,7 @@
  */
 const { User } = require("../models/user.model");
 const { Profile } = require("../models/profile.model");
+const { sendNotification } = require("./notification-client.service");
 
 const serializeUser = (user) =>
   user
@@ -76,6 +77,18 @@ const createProfile = async (userId, payload) => {
     throw error;
   }
 
+  await sendNotification({
+    userId: String(userId),
+    title: "Profil cree",
+    message: "Votre profil a ete cree avec succes.",
+    type: "profile",
+    event: "profile_created",
+    sourceService: "profile-service",
+    metadata: {
+      profileId: String(profile._id)
+    }
+  });
+
   return {
     message: "Profile created successfully",
     profile: serializeProfile(profile)
@@ -123,6 +136,19 @@ const updateCurrentProfile = async (userId, updates) => {
   Object.assign(profile, updates);
   await profile.save();
 
+  await sendNotification({
+    userId: String(userId),
+    title: "Profil mis a jour",
+    message: "Les informations de votre profil ont ete mises a jour.",
+    type: "profile",
+    event: "profile_updated",
+    sourceService: "profile-service",
+    metadata: {
+      profileId: String(profile._id),
+      updatedFields: Object.keys(updates)
+    }
+  });
+
   return {
     message: "Profile updated successfully",
     profile: serializeProfile(profile)
@@ -139,12 +165,24 @@ const deleteCurrentProfile = async (userId) => {
     { new: false, runValidators: false }
   );
 
+  await sendNotification({
+    userId: String(userId),
+    title: "Profil supprime",
+    message: "Votre profil a ete supprime.",
+    type: "profile",
+    event: "profile_deleted",
+    sourceService: "profile-service",
+    metadata: {
+      profileId: String(profile._id)
+    }
+  });
+
   return {
     message: "Profile deleted successfully"
   };
 };
 
-const createProfileByAdmin = async (userId, payload) => {
+const createProfileByAdmin = async (userId, payload, actorUserId) => {
   const user = await User.findById(userId);
 
   if (!user) {
@@ -177,13 +215,26 @@ const createProfileByAdmin = async (userId, payload) => {
     "first_name last_name email role"
   );
 
+  await sendNotification({
+    userId: String(userId),
+    title: "Profil cree",
+    message: "Un administrateur a cree votre profil.",
+    type: "profile",
+    event: "profile_created_by_admin",
+    sourceService: "profile-service",
+    metadata: {
+      profileId: String(profile._id),
+      actorUserId: String(actorUserId)
+    }
+  });
+
   return {
     message: "Profile created successfully",
     profile: serializeProfile(populatedProfile)
   };
 };
 
-const updateProfileById = async (profileId, updates) => {
+const updateProfileById = async (profileId, updates, actorUserId) => {
   const profile = await Profile.findById(profileId).populate(
     "user_id",
     "first_name last_name email role"
@@ -198,13 +249,27 @@ const updateProfileById = async (profileId, updates) => {
   Object.assign(profile, updates);
   await profile.save();
 
+  await sendNotification({
+    userId: String(profile.user_id?._id || profile.user_id),
+    title: "Profil mis a jour",
+    message: "Un administrateur a mis a jour votre profil.",
+    type: "profile",
+    event: "profile_updated_by_admin",
+    sourceService: "profile-service",
+    metadata: {
+      profileId: String(profile._id),
+      actorUserId: String(actorUserId),
+      updatedFields: Object.keys(updates)
+    }
+  });
+
   return {
     message: "Profile updated successfully",
     profile: serializeProfile(profile)
   };
 };
 
-const deleteProfileById = async (profileId) => {
+const deleteProfileById = async (profileId, actorUserId) => {
   const profile = await Profile.findById(profileId);
 
   if (!profile) {
@@ -219,6 +284,19 @@ const deleteProfileById = async (profileId) => {
     { profile_id: null },
     { new: false, runValidators: false }
   );
+
+  await sendNotification({
+    userId: String(profile.user_id),
+    title: "Profil supprime",
+    message: "Un administrateur a supprime votre profil.",
+    type: "profile",
+    event: "profile_deleted_by_admin",
+    sourceService: "profile-service",
+    metadata: {
+      profileId: String(profile._id),
+      actorUserId: String(actorUserId)
+    }
+  });
 
   return {
     message: "Profile deleted successfully"

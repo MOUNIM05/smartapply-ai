@@ -4,6 +4,7 @@
  */
 const { Profile } = require("../models/profile.model");
 const { Skill } = require("../models/skill.model");
+const { sendNotification } = require("./notification-client.service");
 
 const serializeSkill = (skill) => ({
   id: skill._id,
@@ -58,6 +59,19 @@ const createSkill = async (userId, payload) => {
     ...payload
   });
 
+  await sendNotification({
+    userId: String(userId),
+    title: "Competence ajoutee",
+    message: `La competence ${skill.name} a ete ajoutee a votre profil.`,
+    type: "skill",
+    event: "skill_created",
+    sourceService: "profile-service",
+    metadata: {
+      profileId: String(profile._id),
+      skillId: String(skill._id)
+    }
+  });
+
   return {
     message: "Skill created successfully",
     skill: serializeSkill(skill)
@@ -71,6 +85,20 @@ const updateSkill = async (userId, skillId, updates) => {
   Object.assign(skill, updates);
   await skill.save();
 
+  await sendNotification({
+    userId: String(userId),
+    title: "Competence mise a jour",
+    message: `La competence ${skill.name} a ete mise a jour.`,
+    type: "skill",
+    event: "skill_updated",
+    sourceService: "profile-service",
+    metadata: {
+      profileId: String(profile._id),
+      skillId: String(skill._id),
+      updatedFields: Object.keys(updates)
+    }
+  });
+
   return {
     message: "Skill updated successfully",
     skill: serializeSkill(skill)
@@ -79,8 +107,21 @@ const updateSkill = async (userId, skillId, updates) => {
 
 const deleteSkill = async (userId, skillId) => {
   const profile = await getProfileByUserIdOrThrow(userId);
-  await getSkillByIdForProfileOrThrow(profile._id, skillId);
+  const skill = await getSkillByIdForProfileOrThrow(profile._id, skillId);
   await Skill.findByIdAndDelete(skillId);
+
+  await sendNotification({
+    userId: String(userId),
+    title: "Competence supprimee",
+    message: `La competence ${skill.name} a ete supprimee de votre profil.`,
+    type: "skill",
+    event: "skill_deleted",
+    sourceService: "profile-service",
+    metadata: {
+      profileId: String(profile._id),
+      skillId: String(skill._id)
+    }
+  });
 
   return {
     message: "Skill deleted successfully"

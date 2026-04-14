@@ -38,6 +38,11 @@ export const GeneratedDocumentSchema = {
     enum: ["pdf"],
     default: "pdf",
     immutable: true
+  },
+  ownerUserId: {
+    type: String,
+    trim: true,
+    default: null
   }
 };
 

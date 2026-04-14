@@ -4,6 +4,7 @@
  */
 const { Profile } = require("../models/profile.model");
 const { Experience } = require("../models/experience.model");
+const { sendNotification } = require("./notification-client.service");
 
 const serializeExperience = (experience) => ({
   id: experience._id,
@@ -63,6 +64,19 @@ const createExperience = async (userId, payload) => {
     ...payload
   });
 
+  await sendNotification({
+    userId: String(userId),
+    title: "Experience ajoutee",
+    message: `Une nouvelle experience a ete ajoutee: ${experience.jobTitle} chez ${experience.company}.`,
+    type: "experience",
+    event: "experience_created",
+    sourceService: "profile-service",
+    metadata: {
+      profileId: String(profile._id),
+      experienceId: String(experience._id)
+    }
+  });
+
   return {
     message: "Experience created successfully",
     experience: serializeExperience(experience)
@@ -79,6 +93,20 @@ const updateExperience = async (userId, experienceId, updates) => {
   Object.assign(experience, updates);
   await experience.save();
 
+  await sendNotification({
+    userId: String(userId),
+    title: "Experience mise a jour",
+    message: `Votre experience ${experience.jobTitle} chez ${experience.company} a ete mise a jour.`,
+    type: "experience",
+    event: "experience_updated",
+    sourceService: "profile-service",
+    metadata: {
+      profileId: String(profile._id),
+      experienceId: String(experience._id),
+      updatedFields: Object.keys(updates)
+    }
+  });
+
   return {
     message: "Experience updated successfully",
     experience: serializeExperience(experience)
@@ -87,8 +115,21 @@ const updateExperience = async (userId, experienceId, updates) => {
 
 const deleteExperience = async (userId, experienceId) => {
   const profile = await getProfileByUserIdOrThrow(userId);
-  await getExperienceByIdForProfileOrThrow(profile._id, experienceId);
+  const experience = await getExperienceByIdForProfileOrThrow(profile._id, experienceId);
   await Experience.findByIdAndDelete(experienceId);
+
+  await sendNotification({
+    userId: String(userId),
+    title: "Experience supprimee",
+    message: `Votre experience ${experience.jobTitle} chez ${experience.company} a ete supprimee.`,
+    type: "experience",
+    event: "experience_deleted",
+    sourceService: "profile-service",
+    metadata: {
+      profileId: String(profile._id),
+      experienceId: String(experience._id)
+    }
+  });
 
   return {
     message: "Experience deleted successfully"

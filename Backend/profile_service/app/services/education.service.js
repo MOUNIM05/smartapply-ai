@@ -4,6 +4,7 @@
  */
 const { Profile } = require("../models/profile.model");
 const { Education } = require("../models/education.model");
+const { sendNotification } = require("./notification-client.service");
 
 const serializeEducation = (education) => ({
   id: education._id,
@@ -60,6 +61,19 @@ const createEducation = async (userId, payload) => {
     ...payload
   });
 
+  await sendNotification({
+    userId: String(userId),
+    title: "Formation ajoutee",
+    message: `Une nouvelle formation a ete ajoutee: ${education.title} a ${education.school}.`,
+    type: "education",
+    event: "education_created",
+    sourceService: "profile-service",
+    metadata: {
+      profileId: String(profile._id),
+      educationId: String(education._id)
+    }
+  });
+
   return {
     message: "Education created successfully",
     education: serializeEducation(education)
@@ -76,6 +90,20 @@ const updateEducation = async (userId, educationId, updates) => {
   Object.assign(education, updates);
   await education.save();
 
+  await sendNotification({
+    userId: String(userId),
+    title: "Formation mise a jour",
+    message: `Votre formation ${education.title} a ${education.school} a ete mise a jour.`,
+    type: "education",
+    event: "education_updated",
+    sourceService: "profile-service",
+    metadata: {
+      profileId: String(profile._id),
+      educationId: String(education._id),
+      updatedFields: Object.keys(updates)
+    }
+  });
+
   return {
     message: "Education updated successfully",
     education: serializeEducation(education)
@@ -84,8 +112,21 @@ const updateEducation = async (userId, educationId, updates) => {
 
 const deleteEducation = async (userId, educationId) => {
   const profile = await getProfileByUserIdOrThrow(userId);
-  await getEducationByIdForProfileOrThrow(profile._id, educationId);
+  const education = await getEducationByIdForProfileOrThrow(profile._id, educationId);
   await Education.findByIdAndDelete(educationId);
+
+  await sendNotification({
+    userId: String(userId),
+    title: "Formation supprimee",
+    message: `Votre formation ${education.title} a ${education.school} a ete supprimee.`,
+    type: "education",
+    event: "education_deleted",
+    sourceService: "profile-service",
+    metadata: {
+      profileId: String(profile._id),
+      educationId: String(education._id)
+    }
+  });
 
   return {
     message: "Education deleted successfully"

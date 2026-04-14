@@ -4,6 +4,7 @@
  */
 import { createMotivationLetter, getMotivationLetterById } from "../services/motivation-letter.service.js";
 import { streamPDFToResponse } from "../services/pdf.service.js";
+import { sendNotification } from "../services/notification-client.service.js";
 
 export const createMotivationLetterController = async (req, res, next) => {
   try {
@@ -25,6 +26,20 @@ export const exportMotivationLetterPDFController = async (req, res, next) => {
         message: "Motivation letter not found"
       });
     }
+
+    await sendNotification({
+      userId: letter.ownerUserId,
+      title: "Lettre de motivation exportee",
+      message: `Le document ${letter.title} a ete exporte en PDF.`,
+      type: "system",
+      event: "document_motivation_letter_exported",
+      sourceService: "document-service",
+      metadata: {
+        documentId: String(letter.id),
+        documentType: letter.type
+      }
+    });
+
     streamPDFToResponse(letter.exportPDF(), res, `MotivationLetter_${letter.id}`);
   } catch (error) {
     next(error);

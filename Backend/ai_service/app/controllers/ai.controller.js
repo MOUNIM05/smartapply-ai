@@ -22,7 +22,7 @@ const {
 const createAIModelController = async (req, res, next) => {
   try {
     const payload = validateCreateAIModelRequest(req.body);
-    const result = await createAIModel(payload);
+    const result = await createAIModel(req.user.userId, payload);
     res.status(201).json(result);
   } catch (error) {
     next(error);
@@ -78,7 +78,7 @@ const getAIGenerationRequestByIdController = async (req, res, next) => {
 const createAIGenerationResponseController = async (req, res, next) => {
   try {
     const payload = validateCreateAIGenerationResponseRequest(req.body);
-    const result = await createAIGenerationResponse(payload);
+    const result = await createAIGenerationResponse(req.user.userId, payload);
     res.status(201).json(result);
   } catch (error) {
     next(error);
