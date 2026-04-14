@@ -6,6 +6,15 @@ const { Application } = require("../models/application.model");
 const { JobOffer } = require("../models/job-offer.model");
 const { sendNotification } = require("./notification-client.service");
 
+const serializeStoredFile = (file) =>
+  file
+    ? {
+        fileName: file.fileName,
+        mimeType: file.mimeType,
+        size: file.size
+      }
+    : null;
+
 const serializeJobOffer = (jobOffer) => ({
   id: jobOffer._id,
   jobTitle: jobOffer.jobTitle,
@@ -24,6 +33,8 @@ const serializeApplication = (application) => ({
   jobOfferId: application.jobOfferId,
   appliedAt: application.appliedAt,
   status: application.status,
+  cvFile: serializeStoredFile(application.cvFile),
+  motivationLetterFile: serializeStoredFile(application.motivationLetterFile),
   createdAt: application.createdAt,
   updatedAt: application.updatedAt
 });
@@ -73,7 +84,7 @@ const getJobOfferById = async (jobOfferId) => {
   };
 };
 
-const createApplication = async (actorUserId, { profileId, jobOfferId, status }) => {
+const createApplication = async (actorUserId, { profileId, jobOfferId, status, cvFile, motivationLetterFile }) => {
   const jobOffer = await JobOffer.findById(jobOfferId);
 
   if (!jobOffer) {
@@ -85,7 +96,9 @@ const createApplication = async (actorUserId, { profileId, jobOfferId, status })
   const application = await Application.create({
     profileId,
     jobOfferId,
-    status
+    status,
+    cvFile,
+    motivationLetterFile
   });
 
   await sendNotification({
@@ -100,6 +113,10 @@ const createApplication = async (actorUserId, { profileId, jobOfferId, status })
       profileId: String(profileId),
       jobOfferId: String(jobOfferId),
       status: application.status,
+      hasCv: Boolean(cvFile),
+      hasMotivationLetter: Boolean(motivationLetterFile),
+      cvFileName: cvFile?.fileName || null,
+      motivationLetterFileName: motivationLetterFile?.fileName || null,
       jobTitle: jobOffer.jobTitle,
       company: jobOffer.company
     }
