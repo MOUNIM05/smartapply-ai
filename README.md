@@ -169,6 +169,62 @@ Fonctionnalites frontend:
 - filtres `Tout`, `Non lues`, `Archives`
 - action d'archivage depuis l'interface
 
+## Fonctionnalites ajoutees recemment
+
+### Compte utilisateur
+
+- page `Account` avec modification du prenom, nom, email, adresse, mot de passe et photo de profil
+- photo de compte chargeable depuis le PC ou via URL image
+- compression frontend de l'image avant envoi
+- prise en charge backend de payloads plus grands pour la photo
+- mode edition ouvert via bouton `Modify account`
+- `Remember me` fonctionnel sur la page login
+
+### Abonnement
+
+- bouton `Upgrade to Pro` relie a une page `Subscription`
+- interface d'abonnement avec 3 plans:
+  - `Free`
+  - `Student` a `49 EUR`
+  - `Premium` a `99 EUR`
+
+### Offres et candidatures
+
+- page `Jobs` refaite avec:
+  - recherche par mot-cle et localisation
+  - affichage liste + panneau detail
+  - conseils de candidature
+  - score de compatibilite profil / offre
+- bouton `Add offer` accessible depuis la page offres
+- candidature avec pieces jointes PDF:
+  - CV PDF depuis le PC
+  - lettre de motivation PDF depuis le PC
+- `job_service` stocke maintenant les metadonnees de ces fichiers PDF dans les candidatures
+
+### Recherche globale
+
+- la barre de recherche de la navbar peut rediriger vers `/jobs`
+- le mot cle est passe dans l'URL et applique automatiquement a la page offres
+
+### IA et generation de documents
+
+- la page `Generate CV` utilise maintenant le vrai contexte du profil:
+  - profil
+  - experiences
+  - formations
+  - competences
+  - langues
+- `ai_service` produit des sorties structurees selon le type de document:
+  - CV
+  - lettre de motivation
+  - email de candidature
+  - adaptation a une offre
+- `document_service` exploite des donnees structurees et un `templateKey`
+- nouveaux rendus PDF plus proches de vrais templates:
+  - CV type sidebar
+  - lettre de motivation formelle
+  - email professionnel
+
 ## Lancement frontend en local
 
 Depuis le dossier `frontend`:
@@ -199,13 +255,14 @@ npm run lint
 
 La page `Generate CV` utilise maintenant un flux en deux etapes:
 
-1. `ai_service` genere un brouillon texte a partir du contexte saisi par l'utilisateur.
-2. `document_service` transforme ce contenu en document PDF telechargeable.
+1. `ai_service` genere un brouillon structure a partir du contexte saisi par l'utilisateur et du profil stocke.
+2. `document_service` transforme ce contenu en document PDF telechargeable selon le template choisi.
 
 Comportement de `ai_service`:
 
 - si `OPENAI_API_KEY` est configuree, le service appelle l'API OpenAI
-- si la cle manque ou si l'appel echoue, le service repasse sur le mock interne pour ne pas bloquer l'application
+- le prompt inclut le contexte du poste et un snapshot du profil utilisateur
+- si la cle manque ou si l'appel echoue, le service repasse sur un fallback structure local pour ne pas bloquer l'application
 
 Comportement par action:
 
@@ -222,6 +279,12 @@ Services appeles par le frontend:
 - `notification_service`: `http://localhost:5005`
 
 Le resultat texte reste visible dans l'interface, et un fichier PDF est telecharge automatiquement pour les trois actions documentaires.
+
+Templates documentaires actuellement relies au flux:
+
+- `cv-modern-sidebar`
+- `motivation-formal`
+- `email-prime`
 
 ## Tester l'integration OpenAI depuis le frontend
 

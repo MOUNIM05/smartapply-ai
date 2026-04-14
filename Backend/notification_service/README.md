@@ -11,6 +11,22 @@ Le `notification_service` centralise les notifications utilisateur de SmartApply
 - archiver une notification
 - conserver les metadonnees de contexte
 
+## Integration plateforme
+
+Le service est utilise par:
+
+- `auth_service`
+- `profile_service`
+- `job_service`
+- `ai_service`
+- `document_service`
+
+Dans le frontend, les notifications sont visibles:
+
+- dans la cloche de la navbar
+- dans la page `Notifications`
+- avec recherche, filtres et archivage
+
 ## Variables d'environnement
 
 Exemple disponible dans :
