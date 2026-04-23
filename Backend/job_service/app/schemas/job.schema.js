@@ -101,8 +101,51 @@ const validateCreateApplicationRequest = (payload) => {
   };
 };
 
+const validateListJobOffersQuery = (query) => {
+  const options = {
+    recommended: false,
+    limit: null,
+    interests: []
+  };
+
+  if (typeof query?.recommended === "string") {
+    const normalized = query.recommended.trim().toLowerCase();
+    options.recommended = ["1", "true", "yes", "on"].includes(normalized);
+  }
+
+  if (typeof query?.limit === "string" && query.limit.trim()) {
+    const parsedLimit = Number(query.limit);
+
+    if (!Number.isFinite(parsedLimit) || parsedLimit <= 0) {
+      const error = new Error("limit must be a positive number");
+      error.statusCode = 422;
+      throw error;
+    }
+
+    options.limit = Math.min(Math.floor(parsedLimit), 200);
+  }
+
+  const normalizeInterests = (rawValue) => {
+    if (!rawValue) return [];
+
+    const values = Array.isArray(rawValue)
+      ? rawValue
+      : String(rawValue)
+          .split(",")
+          .map((item) => item.trim())
+          .filter(Boolean);
+
+    return [...new Set(values.map((item) => item.toLowerCase()))].slice(0, 10);
+  };
+
+  options.interests = normalizeInterests(query?.interests || query?.tags);
+
+  return options;
+};
+
 module.exports = {
   validateCreateJobOfferRequest,
-  validateCreateApplicationRequest
+  validateCreateApplicationRequest,
+  validateListJobOffersQuery
 };
 

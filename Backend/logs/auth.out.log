@@ -1,0 +1,5 @@
+
+> cv-ai-backend@1.0.0 start
+> node app/main.js
+
+MongoDB connected successfully

@@ -10,7 +10,8 @@ const {
   getAIGenerationRequestByIdController,
   createAIGenerationResponseController,
   listAIGenerationResponsesController,
-  getAIGenerationResponseByIdController
+  getAIGenerationResponseByIdController,
+  parseCVUploadController
 } = require("../controllers/ai.controller");
 
 const router = express.Router();
@@ -26,5 +27,6 @@ router.get("/ai-requests/:id", verifyToken, getAIGenerationRequestByIdController
 router.post("/ai-responses", verifyToken, requireAdmin, createAIGenerationResponseController);
 router.get("/ai-responses", verifyToken, listAIGenerationResponsesController);
 router.get("/ai-responses/:id", verifyToken, getAIGenerationResponseByIdController);
+router.post("/ai-cv-parse", verifyToken, parseCVUploadController);
 
 module.exports = router;

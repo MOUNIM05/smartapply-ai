@@ -1,5 +1,8 @@
 // Bootstraps the Job service, middleware stack, and routes.
-require("dotenv").config();
+const path = require("path");
+require("dotenv").config({
+  path: path.resolve(__dirname, "../.env")
+});
 
 const express = require("express");
 const cors = require("cors");
@@ -10,6 +13,14 @@ const jobRoutes = require("./routes/job.routes");
 
 const app = express();
 const PORT = process.env.PORT || 5002;
+
+const requiredEnvVars = ["MONGO_URI", "JWT_SECRET"];
+const missingEnvVars = requiredEnvVars.filter((variableName) => !process.env[variableName]);
+
+if (missingEnvVars.length > 0) {
+  console.error(`Missing required environment variables: ${missingEnvVars.join(", ")}`);
+  process.exit(1);
+}
 
 app.use(cors());
 app.use(morgan("dev"));

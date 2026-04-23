@@ -82,6 +82,41 @@ const validateCreateUserRequest = (payload) => {
   };
 };
 
+const validateChangePasswordRequest = (payload) => {
+  const currentPassword = typeof payload?.current_password === "string" ? payload.current_password.trim() : "";
+  const newPassword = typeof payload?.new_password === "string" ? payload.new_password.trim() : "";
+  const confirmPassword = typeof payload?.confirm_new_password === "string" ? payload.confirm_new_password.trim() : "";
+
+  if (!currentPassword || !newPassword || !confirmPassword) {
+    const error = new Error("Current password, new password and confirmation are required");
+    error.statusCode = 422;
+    throw error;
+  }
+
+  if (newPassword.length < 6) {
+    const error = new Error("Password must be at least 6 characters");
+    error.statusCode = 422;
+    throw error;
+  }
+
+  if (newPassword !== confirmPassword) {
+    const error = new Error("New password confirmation does not match");
+    error.statusCode = 422;
+    throw error;
+  }
+
+  if (currentPassword === newPassword) {
+    const error = new Error("New password must be different from current password");
+    error.statusCode = 422;
+    throw error;
+  }
+
+  return {
+    currentPassword,
+    newPassword
+  };
+};
+
 const validateAdminUpdateUserRequest = (payload) => {
   const updates = {};
 
@@ -138,6 +173,7 @@ const validateAdminUpdateUserRequest = (payload) => {
 
 module.exports = {
   validateUpdateMeRequest,
+  validateChangePasswordRequest,
   validateCreateUserRequest,
   validateAdminUpdateUserRequest
 };

@@ -2,9 +2,9 @@
  * Couche service - skill.service.js
  * Contient la logique metier et centralise les appels aux modeles MongoDB.
  */
-const { Profile } = require("../models/profile.model");
 const { Skill } = require("../models/skill.model");
 const { sendNotification } = require("./notification-client.service");
+const { getOrCreateProfileByUserId } = require("./profile-bootstrap.service");
 
 const serializeSkill = (skill) => ({
   id: skill._id,
@@ -15,15 +15,7 @@ const serializeSkill = (skill) => ({
 });
 
 const getProfileByUserIdOrThrow = async (userId) => {
-  const profile = await Profile.findOne({ user_id: userId });
-
-  if (!profile) {
-    const error = new Error("Profile not found");
-    error.statusCode = 404;
-    throw error;
-  }
-
-  return profile;
+  return getOrCreateProfileByUserId(userId);
 };
 
 const getSkillByIdForProfileOrThrow = async (profileId, skillId) => {

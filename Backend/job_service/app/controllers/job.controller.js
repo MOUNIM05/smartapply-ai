@@ -4,7 +4,8 @@
  */
 const {
   validateCreateApplicationRequest,
-  validateCreateJobOfferRequest
+  validateCreateJobOfferRequest,
+  validateListJobOffersQuery
 } = require("../schemas/job.schema");
 const {
   createJobOffer,
@@ -27,7 +28,8 @@ const createJobOfferController = async (req, res, next) => {
 
 const listJobOffersController = async (req, res, next) => {
   try {
-    const result = await listJobOffers();
+    const options = validateListJobOffersQuery(req.query);
+    const result = await listJobOffers(req.user, req.headers.authorization, options);
     res.status(200).json(result);
   } catch (error) {
     next(error);

@@ -4,6 +4,36 @@
  */
 const mongoose = require("mongoose");
 
+const cvUploadSchema = new mongoose.Schema(
+  {
+    fileName: {
+      type: String,
+      default: "",
+      trim: true
+    },
+    mimeType: {
+      type: String,
+      default: "",
+      trim: true
+    },
+    size: {
+      type: Number,
+      default: 0
+    },
+    contentBase64: {
+      type: String,
+      default: ""
+    },
+    uploadedAt: {
+      type: Date,
+      default: null
+    }
+  },
+  {
+    _id: false
+  }
+);
+
 const profileSchema = new mongoose.Schema(
   {
     user_id: {
@@ -46,6 +76,10 @@ const profileSchema = new mongoose.Schema(
       type: String,
       default: "",
       trim: true
+    },
+    cv_upload: {
+      type: cvUploadSchema,
+      default: null
     }
   },
   {

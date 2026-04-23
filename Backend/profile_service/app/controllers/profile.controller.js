@@ -2,7 +2,11 @@
  * Controleur HTTP - profile.controller.js
  * Recoit les requetes Express, appelle la couche service et renvoie les reponses JSON.
  */
-const { validateCreateProfileRequest, validateUpdateProfileRequest } = require("../schemas/profile.schema");
+const {
+  validateCreateProfileRequest,
+  validateUpdateProfileRequest,
+  validateUpsertProfileCVRequest
+} = require("../schemas/profile.schema");
 const {
   createProfile,
   getCurrentProfile,
@@ -10,6 +14,9 @@ const {
   listProfiles,
   updateCurrentProfile,
   deleteCurrentProfile,
+  upsertCurrentProfileCV,
+  getCurrentProfileCV,
+  deleteCurrentProfileCV,
   createProfileByAdmin,
   updateProfileById,
   deleteProfileById
@@ -71,6 +78,34 @@ const deleteMyProfileController = async (req, res, next) => {
   }
 };
 
+const upsertMyProfileCVController = async (req, res, next) => {
+  try {
+    const payload = validateUpsertProfileCVRequest(req.body);
+    const result = await upsertCurrentProfileCV(req.user.userId, payload);
+    res.status(200).json(result);
+  } catch (error) {
+    next(error);
+  }
+};
+
+const getMyProfileCVController = async (req, res, next) => {
+  try {
+    const result = await getCurrentProfileCV(req.user.userId);
+    res.status(200).json(result);
+  } catch (error) {
+    next(error);
+  }
+};
+
+const deleteMyProfileCVController = async (req, res, next) => {
+  try {
+    const result = await deleteCurrentProfileCV(req.user.userId);
+    res.status(200).json(result);
+  } catch (error) {
+    next(error);
+  }
+};
+
 const createProfileByAdminController = async (req, res, next) => {
   try {
     const payload = validateCreateProfileRequest(req.body);
@@ -107,6 +142,9 @@ module.exports = {
   getProfileByIdController,
   updateMyProfileController,
   deleteMyProfileController,
+  upsertMyProfileCVController,
+  getMyProfileCVController,
+  deleteMyProfileCVController,
   createProfileByAdminController,
   updateProfileByIdController,
   deleteProfileByIdController

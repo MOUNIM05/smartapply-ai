@@ -6,6 +6,8 @@ const { AIModel } = require("../models/ai-model.model");
 const { AIGenerationRequest } = require("../models/ai-generation-request.model");
 const { AIGenerationResponse } = require("../models/ai-generation-response.model");
 const { sendNotification } = require("./notification-client.service");
+const pdfParse = require("pdf-parse");
+const mammoth = require("mammoth");
 
 const DEFAULT_AI_MODEL = {
   name: "SmartApply Assistant",
@@ -15,10 +17,31 @@ const DEFAULT_AI_MODEL = {
 };
 
 const OPENAI_API_URL = "https://api.openai.com/v1/responses";
+const MAX_CV_UPLOAD_BYTES = 8 * 1024 * 1024;
+const SUPPORTED_CV_MIME_TYPES = new Set([
+  "application/pdf",
+  "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+  "text/plain",
+  "text/markdown"
+]);
+const OPENAI_PLACEHOLDER_KEYS = new Set([
+  "",
+  "change_me",
+  "your_openai_api_key",
+  "replace_with_openai_api_key"
+]);
 const TEMPLATE_LIBRARY = {
   "cv-modern-sidebar": {
     label: "CV modern sidebar",
     description: "French-inspired CV with sidebar contact blocks and strong section headers."
+  },
+  "cv-simple-sidebar": {
+    label: "CV simple sidebar",
+    description: "Dark left sidebar for contacts and skills, with clean white right column for profile and experience."
+  },
+  "cv-classic-balance": {
+    label: "CV classic balance",
+    description: "Balanced two-column classic resume with clear blocks for about, education, skills, experience, and awards."
   },
   "motivation-formal": {
     label: "Formal motivation letter",
@@ -74,6 +97,10 @@ const ensureDefaultAIModel = async () => {
 
 const sanitizeText = (value) => (typeof value === "string" ? value.trim() : "");
 const sanitizeArray = (value) => (Array.isArray(value) ? value.map((item) => String(item).trim()).filter(Boolean) : []);
+const hasConfiguredOpenAIKey = () => {
+  const rawKey = sanitizeText(process.env.OPENAI_API_KEY);
+  return Boolean(rawKey) && !OPENAI_PLACEHOLDER_KEYS.has(rawKey.toLowerCase());
+};
 
 const stripMarkdownCodeFence = (value) =>
   String(value || "")
@@ -319,6 +346,241 @@ const parseStructuredOutput = (requestType, text, contextData) => {
   }
 };
 
+const normalizeLanguageEntry = (entry) => {
+  if (!entry) return null;
+
+  if (typeof entry === "string") {
+    return { name: entry.trim(), level: "" };
+  }
+
+  if (typeof entry === "object") {
+    return {
+      name: sanitizeText(entry.name),
+      level: sanitizeText(entry.level)
+    };
+  }
+
+  return null;
+};
+
+const normalizeExperienceEntry = (entry) => {
+  if (!entry || typeof entry !== "object") return null;
+
+  return {
+    jobTitle: sanitizeText(entry.jobTitle || entry.title),
+    company: sanitizeText(entry.company),
+    startDate: sanitizeText(entry.startDate),
+    endDate: sanitizeText(entry.endDate),
+    description: sanitizeText(entry.description),
+    skills: sanitizeArray(entry.skills)
+  };
+};
+
+const normalizeEducationEntry = (entry) => {
+  if (!entry || typeof entry !== "object") return null;
+
+  return {
+    title: sanitizeText(entry.title || entry.degree),
+    school: sanitizeText(entry.school || entry.institution),
+    period: sanitizeText(entry.period || entry.dateRange)
+  };
+};
+
+const cleanExtractedProfile = (payload = {}) => ({
+  professional_title: sanitizeText(payload.professional_title),
+  summary: sanitizeText(payload.summary),
+  phone: sanitizeText(payload.phone),
+  address: sanitizeText(payload.address),
+  skills: sanitizeArray(payload.skills),
+  languages: (Array.isArray(payload.languages) ? payload.languages : [])
+    .map(normalizeLanguageEntry)
+    .filter((entry) => entry?.name),
+  experiences: (Array.isArray(payload.experiences) ? payload.experiences : [])
+    .map(normalizeExperienceEntry)
+    .filter((entry) => entry?.jobTitle),
+  educations: (Array.isArray(payload.educations) ? payload.educations : [])
+    .map(normalizeEducationEntry)
+    .filter((entry) => entry?.title && entry?.school)
+});
+
+const buildCvParseFallback = (cvText) => {
+  const normalizedText = sanitizeText(cvText);
+  const lines = normalizedText
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .filter(Boolean);
+  const phoneMatch =
+    normalizedText.match(/(\+?\d[\d\s().-]{7,}\d)/) ||
+    normalizedText.match(/\b0\d{9,10}\b/);
+  const addressMatch = normalizedText.match(/(?:address|adresse)\s*[:\-]\s*(.+)/i);
+  const skillsMatch = normalizedText.match(/(?:skills?|competences?)\s*[:\-]\s*(.+)/i);
+  const languagesMatch = normalizedText.match(/(?:languages?|langues?)\s*[:\-]\s*(.+)/i);
+  const skillList = skillsMatch
+    ? skillsMatch[1]
+      .split(/[;,|]/)
+      .map((item) => item.trim())
+      .filter(Boolean)
+    : [];
+  const languageList = languagesMatch
+    ? languagesMatch[1]
+      .split(/[;,|]/)
+      .map((item) => item.trim())
+      .filter(Boolean)
+      .map((name) => ({ name, level: "" }))
+    : [];
+
+  const summary = lines.slice(0, 3).join(" ").slice(0, 550);
+
+  return cleanExtractedProfile({
+    professional_title: lines[1] || "",
+    summary,
+    phone: phoneMatch ? phoneMatch[1].trim() : "",
+    address: addressMatch ? addressMatch[1].trim() : "",
+    skills: skillList,
+    languages: languageList,
+    experiences: [],
+    educations: []
+  });
+};
+
+const extractTextFromUploadedCV = async ({ fileName, mimeType, contentBase64 }) => {
+  if (!SUPPORTED_CV_MIME_TYPES.has(mimeType)) {
+    const error = new Error("Unsupported CV format. Use PDF, DOCX or TXT.");
+    error.statusCode = 422;
+    throw error;
+  }
+
+  let fileBuffer;
+
+  try {
+    fileBuffer = Buffer.from(contentBase64, "base64");
+  } catch {
+    const error = new Error("Invalid base64 file content");
+    error.statusCode = 422;
+    throw error;
+  }
+
+  if (!fileBuffer || fileBuffer.length === 0) {
+    const error = new Error("Uploaded CV is empty");
+    error.statusCode = 422;
+    throw error;
+  }
+
+  if (fileBuffer.length > MAX_CV_UPLOAD_BYTES) {
+    const error = new Error("CV file is too large. Maximum size is 8MB.");
+    error.statusCode = 422;
+    throw error;
+  }
+
+  if (mimeType === "application/pdf") {
+    const parsed = await pdfParse(fileBuffer);
+    return sanitizeText(parsed?.text);
+  }
+
+  if (mimeType === "application/vnd.openxmlformats-officedocument.wordprocessingml.document") {
+    const parsed = await mammoth.extractRawText({ buffer: fileBuffer });
+    return sanitizeText(parsed?.value);
+  }
+
+  if (mimeType === "text/plain" || mimeType === "text/markdown") {
+    return sanitizeText(fileBuffer.toString("utf8"));
+  }
+
+  const error = new Error(`Unsupported CV format: ${fileName}`);
+  error.statusCode = 422;
+  throw error;
+};
+
+const extractProfileFromCvText = async (cvText) => {
+  if (!hasConfiguredOpenAIKey()) {
+    return buildCvParseFallback(cvText);
+  }
+
+  const apiKey = sanitizeText(process.env.OPENAI_API_KEY);
+  const controller = new AbortController();
+  const timeoutMs = Number(process.env.OPENAI_TIMEOUT_MS || 20000);
+  const timeout = setTimeout(() => controller.abort(), timeoutMs);
+
+  try {
+    const response = await fetch(OPENAI_API_URL, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${apiKey}`
+      },
+      body: JSON.stringify({
+        model: process.env.OPENAI_MODEL || "gpt-5.2",
+        instructions: [
+          "You extract profile data from a CV.",
+          "Return valid JSON only, no markdown.",
+          "If a field is missing, return empty string or empty array.",
+          "JSON schema:",
+          "{",
+          '  "professional_title": string,',
+          '  "summary": string,',
+          '  "phone": string,',
+          '  "address": string,',
+          '  "skills": string[],',
+          '  "languages": [{ "name": string, "level": string }],',
+          '  "experiences": [{ "jobTitle": string, "company": string, "startDate": string, "endDate": string, "description": string, "skills": string[] }],',
+          '  "educations": [{ "title": string, "school": string, "period": string }]',
+          "}"
+        ].join("\n"),
+        input: `CV content:\n${cvText}`
+      }),
+      signal: controller.signal
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(`OpenAI request failed (${response.status}): ${errorText}`);
+    }
+
+    const payload = await response.json();
+    const outputText = payload?.output_text?.trim() || "";
+    const parsed = JSON.parse(stripMarkdownCodeFence(outputText));
+
+    return cleanExtractedProfile(parsed);
+  } catch (error) {
+    console.error("CV parse with OpenAI failed, using fallback:", error.message);
+    return buildCvParseFallback(cvText);
+  } finally {
+    clearTimeout(timeout);
+  }
+};
+
+const parseCVUpload = async (requesterId, payload) => {
+  const cvText = await extractTextFromUploadedCV(payload);
+
+  if (!cvText || cvText.length < 20) {
+    const error = new Error("Unable to extract enough text from this CV file");
+    error.statusCode = 422;
+    throw error;
+  }
+
+  const parsedProfile = await extractProfileFromCvText(cvText);
+
+  await sendNotification({
+    userId: String(requesterId),
+    title: "CV analyse termine",
+    message: "Votre CV a ete importe et les informations ont ete extraites.",
+    type: "system",
+    event: "ai_cv_parsed",
+    sourceService: "ai-service",
+    metadata: {
+      fileName: payload.fileName,
+      mimeType: payload.mimeType,
+      extractedChars: cvText.length
+    }
+  });
+
+  return {
+    message: "CV parsed successfully",
+    parsedProfile,
+    extractedTextPreview: cvText.slice(0, 1200)
+  };
+};
+
 const formatStructuredOutput = (requestType, structuredOutput) => {
   if (requestType === "cv_generation") {
     return [
@@ -370,9 +632,9 @@ const formatStructuredOutput = (requestType, structuredOutput) => {
 };
 
 const generateWithOpenAI = async ({ requestType, prompt, contextData }) => {
-  const apiKey = process.env.OPENAI_API_KEY;
+  const apiKey = sanitizeText(process.env.OPENAI_API_KEY);
 
-  if (!apiKey) {
+  if (!hasConfiguredOpenAIKey()) {
     const structuredOutput = buildStructuredFallback({ requestType, prompt, contextData });
     return {
       rawOutput: formatStructuredOutput(requestType, structuredOutput),
@@ -500,7 +762,7 @@ const createAIGenerationRequest = async (requesterId, payload) => {
       requestType: payload.requestType,
       templateKey: payload.contextData?.templateKey || payload.contextData?.template || "default",
       jobContext: payload.contextData?.jobContext || "",
-      generatedBy: process.env.OPENAI_API_KEY
+      generatedBy: hasConfiguredOpenAIKey()
         ? `${aiModel.name} via OpenAI API`
         : `${aiModel.name} structured fallback`,
       ...generation.structuredOutput
@@ -643,6 +905,7 @@ module.exports = {
   getAIGenerationRequestById,
   createAIGenerationResponse,
   listAIGenerationResponses,
-  getAIGenerationResponseById
+  getAIGenerationResponseById,
+  parseCVUpload
 };
 

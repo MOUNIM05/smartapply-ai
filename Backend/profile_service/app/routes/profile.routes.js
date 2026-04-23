@@ -9,6 +9,9 @@ const {
   getProfileByIdController,
   updateMyProfileController,
   deleteMyProfileController,
+  upsertMyProfileCVController,
+  getMyProfileCVController,
+  deleteMyProfileCVController,
   createProfileByAdminController,
   updateProfileByIdController,
   deleteProfileByIdController
@@ -20,6 +23,9 @@ router.post("/profiles", verifyToken, createProfileController);
 router.get("/profiles/me", verifyToken, getMyProfileController);
 router.put("/profiles/me", verifyToken, updateMyProfileController);
 router.delete("/profiles/me", verifyToken, deleteMyProfileController);
+router.get("/profiles/me/cv", verifyToken, getMyProfileCVController);
+router.put("/profiles/me/cv", verifyToken, upsertMyProfileCVController);
+router.delete("/profiles/me/cv", verifyToken, deleteMyProfileCVController);
 router.get("/profiles", verifyToken, requireAdmin, listProfilesController);
 router.post("/profiles/admin", verifyToken, requireAdmin, createProfileByAdminController);
 router.get("/profiles/:id", verifyToken, requireAdmin, getProfileByIdController);

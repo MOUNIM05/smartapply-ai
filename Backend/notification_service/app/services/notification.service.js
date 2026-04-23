@@ -91,6 +91,13 @@ const archiveNotification = async (userId, notificationId) => {
   if (!notification.isArchived) {
     notification.isArchived = true;
     notification.archivedAt = new Date();
+
+    // Consider archived notifications as read to keep timeline fields consistent in UI.
+    if (!notification.isRead) {
+      notification.isRead = true;
+      notification.readAt = new Date();
+    }
+
     await notification.save();
   }
 

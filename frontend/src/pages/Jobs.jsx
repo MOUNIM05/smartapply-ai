@@ -15,6 +15,30 @@ const normalizeText = (value) =>
 
 const tokenize = (value) => normalizeText(value).split(/[^a-zA-Z0-9+#.]+/).map((item) => item.trim()).filter((item) => item.length > 2 && !stopWords.has(item))
 const MAX_PDF_SIZE = 5 * 1024 * 1024
+const INTEREST_STORAGE_KEY = 'smartapply:job-interests'
+const INTEREST_OPTIONS = [
+  { id: 'dev', label: 'Dev' },
+  { id: 'data', label: 'Data' },
+  { id: 'design', label: 'Design' },
+  { id: 'marketing', label: 'Marketing' },
+  { id: 'product', label: 'Product' },
+  { id: 'qa', label: 'QA' }
+]
+
+const readInitialInterests = () => {
+  if (typeof window === 'undefined') return []
+
+  try {
+    const raw = window.localStorage.getItem(INTEREST_STORAGE_KEY)
+    if (!raw) return []
+    const parsed = JSON.parse(raw)
+    if (!Array.isArray(parsed)) return []
+    const allowed = new Set(INTEREST_OPTIONS.map((item) => item.id))
+    return parsed.map((item) => String(item || '').trim().toLowerCase()).filter((item) => allowed.has(item))
+  } catch {
+    return []
+  }
+}
 
 const isSubsequenceMatch = (needle, haystack) => {
   if (!needle) return true
@@ -66,7 +90,7 @@ const formatFileSize = (size) => {
 const getJobInsights = (job, profile, skills) => {
   const jobText = [job?.jobTitle, job?.company, job?.location, job?.employmentType, job?.description].join(' ')
   const skillNames = skills.map((skill) => skill.name)
-  const matchedSkills = skillNames.filter((skill) => jobText.toLowerCase().includes(skill.toLowerCase()))
+  let matchedSkills = skillNames.filter((skill) => jobText.toLowerCase().includes(skill.toLowerCase()))
   const profileTokens = new Set(tokenize([profile?.professional_title, profile?.summary, profile?.address, skillNames.join(' ')].join(' ')))
   const missingKeywords = [...new Set(tokenize(jobText))].filter((token) => !profileTokens.has(token)).slice(0, 5)
   let score = 36 + matchedSkills.length * 12 + (profile?.summary ? 8 : 0)
@@ -74,11 +98,22 @@ const getJobInsights = (job, profile, skills) => {
   if (profile?.address && job?.location && profile.address.toLowerCase().includes(job.location.toLowerCase())) score += 8
   score = Math.max(24, Math.min(score, 96))
 
+  if (job?.recommendation && typeof job.recommendation.score === 'number') {
+    score = Math.max(24, Math.min(Number(job.recommendation.score) || 0, 96))
+    if (Array.isArray(job.recommendation.matchedSkills) && job.recommendation.matchedSkills.length) {
+      matchedSkills = job.recommendation.matchedSkills
+    }
+  }
+
+  const backendReasons = Array.isArray(job?.recommendation?.reasons)
+    ? job.recommendation.reasons.filter(Boolean).slice(0, 3)
+    : []
+
   return {
     score,
     matchedSkills,
     missingKeywords,
-    advice: [
+    advice: backendReasons.length ? backendReasons : [
       matchedSkills.length ? `Highlight ${matchedSkills.slice(0, 3).join(', ')} in the first part of your CV.` : 'Add 2 or 3 concrete strengths from your profile before submitting this application.',
       job?.description ? 'Mirror the job description vocabulary in your motivation letter to improve alignment.' : 'Add a short custom paragraph about why you want this role before submitting.',
       score >= 70 ? 'This role looks aligned with your current profile. Keep the documents concise and targeted.' : 'Strengthen your profile summary and job-specific achievements to improve the fit score.'
@@ -96,6 +131,7 @@ export default function Jobs() {
   const [queryInput, setQueryInput] = useState('')
   const [locationInput, setLocationInput] = useState('')
   const [filters, setFilters] = useState({ query: '', location: '' })
+  const [selectedInterests, setSelectedInterests] = useState(readInitialInterests)
   const [form, setForm] = useState({ jobTitle: '', company: '', location: '', employmentType: '', description: '' })
   const [applicationFiles, setApplicationFiles] = useState({ cvFile: null, motivationLetterFile: null })
   const [loading, setLoading] = useState(true)
@@ -108,10 +144,28 @@ export default function Jobs() {
   const [skills, setSkills] = useState([])
 
   useEffect(() => {
+    if (isAdmin || typeof window === 'undefined') return
+
+    try {
+      window.localStorage.setItem(INTEREST_STORAGE_KEY, JSON.stringify(selectedInterests))
+    } catch {
+      // Ignore storage errors in restricted browser contexts.
+    }
+  }, [isAdmin, selectedInterests])
+
+  useEffect(() => {
     const loadJobs = async () => {
       try {
+        setLoading(true)
         setError('')
-        const jobsResponse = await jobApi.get('/job-offers')
+        const jobsResponse = await jobApi.get('/job-offers', {
+          params: isAdmin
+            ? {}
+            : {
+                recommended: true,
+                interests: selectedInterests.join(',')
+              }
+        })
         const items = jobsResponse.data?.jobOffers || []
         setJobs(items)
         setSelectedId(items[0]?.id || null)
@@ -133,7 +187,7 @@ export default function Jobs() {
     }
 
     loadJobs()
-  }, [isAdmin])
+  }, [isAdmin, selectedInterests])
 
   const filteredJobs = useMemo(() => jobs.filter((job) => {
     const haystack = [job.jobTitle, job.company, job.description, job.employmentType].join(' ')
@@ -168,6 +222,14 @@ export default function Jobs() {
       query: queryInput.trim(),
       location: locationInput.trim()
     })
+  }
+
+  const toggleInterest = (interestId) => {
+    setSelectedInterests((current) =>
+      current.includes(interestId)
+        ? current.filter((item) => item !== interestId)
+        : [...current, interestId]
+    )
   }
 
   const handlePickPdf = async (event, field) => {
@@ -275,149 +337,254 @@ export default function Jobs() {
   }
 
   return (
-    <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className="space-y-6">
-      <section className="relative overflow-hidden rounded-[2rem] bg-white border border-slate-100 shadow-soft px-5 py-6 md:px-8 md:py-8">
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(99,102,241,0.15),transparent_30%),radial-gradient(circle_at_bottom_right,rgba(255,90,78,0.12),transparent_26%)]" />
-        <div className="relative z-10 space-y-6">
-          <div className="flex items-start justify-between gap-4 flex-wrap">
-            <div>
-              <div className="pill mb-2">Job offers</div>
-              <h1 className="text-3xl font-semibold text-slate-900">Find, review, and apply smarter</h1>
-              <p className="text-slate-500 mt-1">Search opportunities, inspect the details, and submit each application with your CV and motivation letter.</p>
-            </div>
-            <button type="button" onClick={() => setShowForm(true)} className="inline-flex items-center gap-2 bg-primary text-white px-4 py-3 rounded-2xl font-semibold shadow-soft hover:shadow-lg transition">
+    <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className="space-y-4">
+      <section className="rounded-[1.5rem] border border-white/10 bg-[#080b13] p-4 md:p-5 shadow-[0_18px_50px_rgba(0,0,0,0.35)]">
+        <div className="flex items-start justify-between gap-3 flex-wrap">
+          <div>
+            <p className="pill mb-2">Jobs</p>
+            <h1 className="text-2xl md:text-3xl font-bold text-white">{isAdmin ? 'Manage job offers' : 'Find jobs'}</h1>
+            <p className="text-sm text-slate-300 mt-1">
+              {isAdmin
+                ? 'Create and review offers.'
+                : 'Browse offers in a list and open each job detail on the right.'}
+            </p>
+          </div>
+          {isAdmin && (
+            <button
+              type="button"
+              onClick={() => setShowForm(true)}
+              className="inline-flex items-center gap-2 rounded-xl bg-primary px-4 py-2.5 text-sm font-semibold text-white shadow-[0_10px_28px_rgba(124,58,237,0.45)]"
+            >
               <Plus size={16} />
               Add offer
             </button>
-          </div>
-
-          <div className="rounded-[2rem] border border-slate-200 bg-white/90 backdrop-blur px-3 py-3 md:px-4 md:py-4 flex flex-col lg:flex-row gap-3 lg:items-center shadow-lg">
-            <div className="flex items-center gap-3 flex-1 px-3">
-              <Search size={22} className="text-slate-500" />
-              <input value={queryInput} onChange={(event) => setQueryInput(event.target.value)} onKeyDown={(event) => event.key === 'Enter' && handleApplyFilters()} placeholder="Job title, company, keywords..." className="w-full bg-transparent outline-none text-slate-800 placeholder:text-slate-400 text-base" />
-            </div>
-            <div className="hidden lg:block w-px h-10 bg-slate-200" />
-            <div className="flex items-center gap-3 flex-1 px-3">
-              <MapPin size={22} className="text-slate-500" />
-              <input value={locationInput} onChange={(event) => setLocationInput(event.target.value)} onKeyDown={(event) => event.key === 'Enter' && handleApplyFilters()} placeholder="Location or remote" className="w-full bg-transparent outline-none text-slate-800 placeholder:text-slate-400 text-base" />
-            </div>
-            <button type="button" onClick={handleApplyFilters} className="inline-flex items-center justify-center gap-2 rounded-2xl bg-primary text-white px-5 py-3 font-semibold shadow-soft">
-              <Search size={16} />
-              Search
-            </button>
-          </div>
-
-          {!isAdmin && profile && (
-            <div className="grid md:grid-cols-3 gap-4">
-              <div className="rounded-2xl bg-slate-900 text-white px-5 py-4"><p className="text-sm text-slate-300">Recommended fit</p><p className="text-3xl font-semibold mt-1">{insights.score}%</p><p className="text-sm text-slate-300 mt-2">Based on your profile, title, summary, and skills.</p></div>
-              <div className="rounded-2xl bg-white border border-slate-100 px-5 py-4"><p className="text-sm text-slate-500">Matched skills</p><p className="text-xl font-semibold text-slate-900 mt-1">{insights.matchedSkills.length}</p><p className="text-sm text-slate-500 mt-2">{insights.matchedSkills.slice(0, 3).join(', ') || 'No exact skill match yet'}</p></div>
-              <div className="rounded-2xl bg-white border border-slate-100 px-5 py-4"><p className="text-sm text-slate-500">Open opportunities</p><p className="text-xl font-semibold text-slate-900 mt-1">{filteredJobs.length}</p><p className="text-sm text-slate-500 mt-2">Filtered from your current search.</p></div>
-            </div>
           )}
         </div>
-      </section>
 
-      {error && <div className="card text-sm text-red-500">{error}</div>}
-      {success && <div className="card text-sm text-green-600">{success}</div>}
-
-      <section className="grid grid-cols-1 xl:grid-cols-[0.95fr,1.05fr] gap-6 items-start">
-        <div className="space-y-4">
-          {loading && <div className="card text-sm text-slate-500">Loading jobs...</div>}
-          {!loading && filteredJobs.length === 0 && <div className="card text-sm text-slate-500">No jobs match your current search.</div>}
-
-          {filteredJobs.map((job) => {
-            const isActive = selectedJob?.id === job.id
-            const jobInsights = getJobInsights(job, profile, skills)
-
-            return (
-              <motion.button key={job.id} type="button" whileHover={{ y: -3 }} onClick={() => setSelectedId(job.id)} className={`w-full text-left card transition border ${isActive ? 'border-primary/60 shadow-lg shadow-primary/10' : 'border-slate-100'}`}>
-                <div className="flex items-start justify-between gap-4">
-                  <div className="space-y-4">
-                    <div className="flex flex-wrap items-center gap-2">
-                      <span className="pill">Recommended</span>
-                      {jobInsights.score >= 70 && <span className="inline-flex items-center rounded-full bg-emerald-50 text-emerald-600 px-3 py-1 text-xs font-medium">Strong fit</span>}
-                    </div>
-                    <div>
-                      <h3 className="text-2xl font-semibold text-slate-900 leading-tight">{job.jobTitle}</h3>
-                      <p className="text-lg text-slate-600 mt-2">{job.company}</p>
-                    </div>
-                    <div className="space-y-2 text-sm text-slate-500">
-                      <div className="flex items-center gap-2"><MapPin size={16} /><span>{job.location || 'Remote / flexible'}</span></div>
-                      <div className="flex items-center gap-2"><BriefcaseBusiness size={16} /><span>{job.employmentType || 'Open contract type'}</span></div>
-                    </div>
-                    <div className="flex flex-wrap gap-2">
-                      <span className="inline-flex rounded-full bg-slate-100 text-slate-700 px-3 py-1 text-sm font-medium">Match {jobInsights.score}%</span>
-                      {jobInsights.matchedSkills.slice(0, 2).map((skill) => <span key={skill} className="inline-flex rounded-full bg-primary/10 text-primary px-3 py-1 text-sm font-medium">{skill}</span>)}
-                    </div>
-                  </div>
-                  {isActive && <div className="h-12 w-12 rounded-2xl bg-primary/10 text-primary flex items-center justify-center shrink-0"><Sparkles size={20} /></div>}
-                </div>
-              </motion.button>
-            )
-          })}
+        <div className="mt-4 grid grid-cols-1 gap-3 xl:grid-cols-[1fr_1fr_auto]">
+          <label className="rounded-2xl border border-white/15 bg-[#0f1320] px-4 py-3">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-slate-400">What</p>
+            <div className="mt-2 flex items-center gap-2">
+              <Search size={16} className="text-slate-400" />
+              <input
+                value={queryInput}
+                onChange={(event) => setQueryInput(event.target.value)}
+                onKeyDown={(event) => event.key === 'Enter' && handleApplyFilters()}
+                placeholder="Job title, keyword or company"
+                className="w-full bg-transparent text-sm text-white outline-none placeholder:text-slate-500"
+              />
+            </div>
+          </label>
+          <label className="rounded-2xl border border-white/15 bg-[#0f1320] px-4 py-3">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-slate-400">Where</p>
+            <div className="mt-2 flex items-center gap-2">
+              <MapPin size={16} className="text-slate-400" />
+              <input
+                value={locationInput}
+                onChange={(event) => setLocationInput(event.target.value)}
+                onKeyDown={(event) => event.key === 'Enter' && handleApplyFilters()}
+                placeholder="City or remote"
+                className="w-full bg-transparent text-sm text-white outline-none placeholder:text-slate-500"
+              />
+            </div>
+          </label>
+          <button
+            type="button"
+            onClick={handleApplyFilters}
+            className="rounded-2xl bg-primary px-5 py-3.5 text-sm font-semibold text-white shadow-[0_10px_28px_rgba(124,58,237,0.45)]"
+          >
+            Find jobs
+          </button>
         </div>
 
-        <div className="card sticky top-4 overflow-hidden">
+        {!isAdmin && (
+          <div className="mt-4">
+            <p className="text-xs font-semibold text-slate-400 mb-2 uppercase tracking-[0.16em]">Interests</p>
+            <div className="flex flex-wrap gap-2">
+              {INTEREST_OPTIONS.map((interest) => {
+                const active = selectedInterests.includes(interest.id)
+                return (
+                  <button
+                    key={interest.id}
+                    type="button"
+                    onClick={() => toggleInterest(interest.id)}
+                    className={`rounded-full px-3 py-1.5 text-xs font-semibold border transition ${
+                      active
+                        ? 'bg-primary text-white border-primary'
+                        : 'bg-[#0f1320] text-slate-300 border-white/10 hover:border-primary/60'
+                    }`}
+                  >
+                    {interest.label}
+                  </button>
+                )
+              })}
+            </div>
+          </div>
+        )}
+      </section>
+
+      {error && <div className="rounded-xl border border-red-400/40 bg-red-500/10 px-4 py-3 text-sm text-red-300">{error}</div>}
+      {success && <div className="rounded-xl border border-emerald-400/40 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-300">{success}</div>}
+
+      <section className="grid grid-cols-1 gap-4 xl:grid-cols-[410px_1fr] items-start">
+        <div className="rounded-[1.35rem] border border-white/10 bg-[#070a11] overflow-hidden">
+          <div className="flex items-center justify-between px-4 py-3 border-b border-white/10">
+            <p className="text-sm text-slate-300">
+              <span className="font-semibold text-white">{filteredJobs.length}</span> jobs found
+            </p>
+            {!isAdmin && (
+              <p className="text-xs text-slate-400">
+                Top match <span className="text-white font-semibold">{insights.score}%</span>
+              </p>
+            )}
+          </div>
+
+          <div className="p-3 space-y-3 max-h-[calc(100vh-16rem)] overflow-y-auto">
+            {loading && (
+              <div className="rounded-xl border border-white/10 bg-[#101420] px-3 py-4 text-sm text-slate-300">
+                Loading jobs...
+              </div>
+            )}
+            {!loading && filteredJobs.length === 0 && (
+              <div className="rounded-xl border border-white/10 bg-[#101420] px-3 py-4 text-sm text-slate-300">
+                No jobs match your search.
+              </div>
+            )}
+
+            {filteredJobs.map((job) => {
+              const isActive = selectedJob?.id === job.id
+              const jobInsights = getJobInsights(job, profile, skills)
+              const snippet = String(job.description || '').trim()
+              const shortDescription = snippet.length > 150 ? `${snippet.slice(0, 150)}...` : snippet
+
+              return (
+                <motion.button
+                  key={job.id}
+                  type="button"
+                  whileHover={{ y: -1 }}
+                  onClick={() => setSelectedId(job.id)}
+                  className={`w-full rounded-2xl border p-4 text-left transition ${
+                    isActive
+                      ? 'border-primary bg-[#151027] shadow-[0_0_0_1px_rgba(124,58,237,0.5)]'
+                      : 'border-white/10 bg-[#0f1320] hover:bg-[#141a2a]'
+                  }`}
+                >
+                  <div className="flex items-start justify-between gap-2">
+                    <h3 className="text-base font-semibold text-white leading-tight">{job.jobTitle}</h3>
+                    <span className="rounded-full bg-white/10 px-2.5 py-1 text-xs font-semibold text-slate-200">
+                      {jobInsights.score}%
+                    </span>
+                  </div>
+
+                  <p className="text-sm text-slate-200 mt-1">{job.company}</p>
+                  <div className="mt-1 flex flex-wrap items-center gap-2 text-xs text-slate-400">
+                    <span>{job.location || 'Remote'}</span>
+                    <span>-</span>
+                    <span>{job.employmentType || 'Open type'}</span>
+                  </div>
+                  <p className="mt-2 text-sm text-slate-300">{shortDescription || 'No description provided.'}</p>
+
+                  <div className="mt-3 flex flex-wrap gap-2">
+                    {(job?.recommendation?.matchedInterests || []).slice(0, 2).map((interest) => (
+                      <span key={interest} className="rounded-full bg-primary/20 px-2.5 py-1 text-xs font-semibold text-primary capitalize">
+                        {interest}
+                      </span>
+                    ))}
+                    {!job?.recommendation?.matchedInterests?.length && (
+                      <span className="rounded-full bg-white/10 px-2.5 py-1 text-xs font-semibold text-slate-300">Suggested</span>
+                    )}
+                  </div>
+                </motion.button>
+              )
+            })}
+          </div>
+        </div>
+
+        <div className="rounded-[1.35rem] border border-white/10 bg-[#070a11] p-5 md:p-6 xl:sticky xl:top-4 min-h-[28rem]">
           {selectedJob ? (
-            <div className="space-y-6">
+            <div className="space-y-5">
               <div className="flex items-start justify-between gap-4 flex-wrap">
                 <div>
-                  <h2 className="text-3xl font-semibold text-slate-900 leading-tight">{selectedJob.jobTitle}</h2>
-                  <div className="space-y-2 mt-4 text-slate-600">
-                    <div className="flex items-center gap-2"><Building2 size={16} /><span>{selectedJob.company}</span></div>
-                    <div className="flex items-center gap-2"><MapPin size={16} /><span>{selectedJob.location || 'Remote / flexible'}</span></div>
-                    <div className="flex items-center gap-2"><BriefcaseBusiness size={16} /><span>{selectedJob.employmentType || 'Open contract type'}</span></div>
+                  <h2 className="text-2xl md:text-3xl font-bold text-white leading-tight">{selectedJob.jobTitle}</h2>
+                  <p className="mt-2 text-base font-medium text-slate-200">{selectedJob.company}</p>
+                  <div className="mt-2 flex flex-wrap items-center gap-2 text-sm text-slate-400">
+                    <span className="inline-flex items-center gap-1"><MapPin size={14} />{selectedJob.location || 'Remote'}</span>
+                    <span>-</span>
+                    <span>{selectedJob.employmentType || 'Open type'}</span>
                   </div>
                 </div>
 
                 {!isAdmin && (
-                  <button type="button" onClick={openApplyModal} disabled={!profileId} className="inline-flex items-center justify-center gap-2 rounded-2xl bg-primary text-white px-5 py-3 font-semibold shadow-soft hover:shadow-lg transition disabled:opacity-60">
-                    <Send size={16} />
+                  <button
+                    type="button"
+                    onClick={openApplyModal}
+                    disabled={!profileId}
+                    className="inline-flex items-center gap-2 rounded-xl bg-primary px-4 py-2.5 text-sm font-semibold text-white shadow-[0_10px_28px_rgba(124,58,237,0.45)] disabled:opacity-60"
+                  >
+                    <Send size={15} />
                     Apply now
                   </button>
                 )}
               </div>
 
-              <div className="grid md:grid-cols-3 gap-4">
-                <div className="rounded-2xl bg-slate-50 border border-slate-100 px-4 py-4"><p className="text-sm text-slate-500">Profile fit</p><p className="text-3xl font-semibold text-slate-900 mt-2">{insights.score}%</p></div>
-                <div className="rounded-2xl bg-slate-50 border border-slate-100 px-4 py-4"><p className="text-sm text-slate-500">Matched skills</p><p className="text-3xl font-semibold text-slate-900 mt-2">{insights.matchedSkills.length}</p></div>
-                <div className="rounded-2xl bg-slate-50 border border-slate-100 px-4 py-4"><p className="text-sm text-slate-500">Missing keywords</p><p className="text-3xl font-semibold text-slate-900 mt-2">{insights.missingKeywords.length}</p></div>
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                <div className="rounded-xl border border-white/10 bg-[#111624] px-3 py-3">
+                  <p className="text-xs font-semibold text-slate-400 uppercase tracking-[0.12em]">Profile fit</p>
+                  <p className="text-xl font-bold text-white mt-1">{insights.score}%</p>
+                </div>
+                <div className="rounded-xl border border-white/10 bg-[#111624] px-3 py-3">
+                  <p className="text-xs font-semibold text-slate-400 uppercase tracking-[0.12em]">Matched skills</p>
+                  <p className="text-xl font-bold text-white mt-1">{insights.matchedSkills.length}</p>
+                </div>
+                <div className="rounded-xl border border-white/10 bg-[#111624] px-3 py-3">
+                  <p className="text-xs font-semibold text-slate-400 uppercase tracking-[0.12em]">Missing terms</p>
+                  <p className="text-xl font-bold text-white mt-1">{insights.missingKeywords.length}</p>
+                </div>
               </div>
 
-              <div className="border-t border-slate-100 pt-6">
-                <h3 className="text-2xl font-semibold text-slate-900">Job details</h3>
-                <p className="text-slate-600 leading-7 mt-3">{selectedJob.description || 'No detailed description yet. You can still prepare a custom CV and motivation letter for this opportunity.'}</p>
+              <div className="rounded-xl border border-white/10 bg-[#0f1320] px-4 py-4">
+                <h3 className="text-base font-semibold text-white mb-2">Job description</h3>
+                <p className="text-sm leading-7 text-slate-300">
+                  {selectedJob.description || 'No detailed description yet.'}
+                </p>
               </div>
 
               {!isAdmin && (
                 <>
-                  <div className="rounded-3xl bg-slate-900 text-white p-5">
-                    <div className="flex items-center gap-3 mb-4">
-                      <div className="h-11 w-11 rounded-2xl bg-white/10 flex items-center justify-center"><Sparkles size={20} /></div>
-                      <div><p className="text-sm text-slate-300">Application advice</p><p className="text-xl font-semibold">How to improve this application</p></div>
+                  <div className="rounded-xl border border-primary/40 bg-primary/10 px-4 py-4">
+                    <p className="text-sm font-semibold text-violet-200 mb-2">Application advice</p>
+                    <div className="space-y-2">
+                      {insights.advice.map((item) => (
+                        <p key={item} className="text-sm text-violet-100">- {item}</p>
+                      ))}
                     </div>
-                    <div className="space-y-3">{insights.advice.map((item) => <div key={item} className="rounded-2xl bg-white/5 border border-white/10 px-4 py-3 text-sm text-slate-100">{item}</div>)}</div>
                   </div>
 
-                  <div className="grid md:grid-cols-2 gap-4">
-                    <div className="rounded-2xl border border-slate-100 bg-white p-5"><div className="flex items-center gap-3"><div className="h-11 w-11 rounded-2xl bg-primary/10 text-primary flex items-center justify-center"><FileText size={20} /></div><div><p className="font-semibold text-slate-900">Upload your CV PDF</p><p className="text-sm text-slate-500">You will attach it from your computer in the application modal.</p></div></div></div>
-                    <div className="rounded-2xl border border-slate-100 bg-white p-5"><div className="flex items-center gap-3"><div className="h-11 w-11 rounded-2xl bg-accent/10 text-accent flex items-center justify-center"><MessageSquareText size={20} /></div><div><p className="font-semibold text-slate-900">Upload your motivation letter PDF</p><p className="text-sm text-slate-500">Both files are stored with the submitted application.</p></div></div></div>
-                  </div>
-
-                  {insights.missingKeywords.length > 0 && <div className="rounded-2xl border border-amber-100 bg-amber-50/70 p-5"><p className="text-sm font-semibold text-amber-700">Keywords to consider in your documents</p><div className="flex flex-wrap gap-2 mt-3">{insights.missingKeywords.map((keyword) => <span key={keyword} className="inline-flex rounded-full bg-white text-amber-700 px-3 py-1 text-sm font-medium border border-amber-200">{keyword}</span>)}</div></div>}
+                  {insights.missingKeywords.length > 0 && (
+                    <div className="rounded-xl border border-amber-300/30 bg-amber-400/10 px-4 py-4">
+                      <p className="text-sm font-semibold text-amber-200 mb-2">Keywords you can mention</p>
+                      <div className="flex flex-wrap gap-2">
+                        {insights.missingKeywords.map((keyword) => (
+                          <span key={keyword} className="rounded-full border border-amber-200/40 bg-[#111624] px-3 py-1 text-xs font-medium text-amber-100">
+                            {keyword}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  )}
                 </>
               )}
             </div>
           ) : (
-            <div className="text-sm text-slate-500">Select a job to view the details.</div>
+            <div className="text-sm text-slate-300">Select a job to display details.</div>
           )}
         </div>
       </section>
 
       <AnimatePresence>
         {showForm && (
-          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 bg-black/30 backdrop-blur-sm z-40 flex items-center justify-center px-4" onClick={() => setShowForm(false)}>
-            <motion.div initial={{ scale: 0.96, y: 10 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.97, y: 12 }} className="bg-white rounded-3xl shadow-soft p-6 w-full max-w-2xl" onClick={(event) => event.stopPropagation()}>
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 modal-backdrop-solid z-40 flex items-center justify-center px-4" onClick={() => setShowForm(false)}>
+            <motion.div initial={{ scale: 0.96, y: 10 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.97, y: 12 }} className="modal-surface-solid rounded-3xl shadow-soft p-6 w-full max-w-2xl" onClick={(event) => event.stopPropagation()}>
               <div className="flex items-center justify-between mb-4">
                 <div><p className="pill mb-1">Add job</p><h3 className="text-xl font-semibold text-slate-900">Create a new job offer</h3></div>
                 <button type="button" className="text-slate-500 hover:text-slate-700" onClick={() => setShowForm(false)}><X size={18} /></button>
@@ -447,8 +614,8 @@ export default function Jobs() {
 
       <AnimatePresence>
         {showApplyModal && selectedJob && (
-          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 flex items-center justify-center px-4 py-6" onClick={() => setShowApplyModal(false)}>
-            <motion.div initial={{ scale: 0.96, y: 10 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.97, y: 12 }} className="bg-white rounded-[2rem] shadow-soft w-full max-w-4xl max-h-[92vh] overflow-y-auto" onClick={(event) => event.stopPropagation()}>
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 modal-backdrop-solid z-50 flex items-center justify-center px-4 py-6" onClick={() => setShowApplyModal(false)}>
+            <motion.div initial={{ scale: 0.96, y: 10 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.97, y: 12 }} className="modal-surface-solid rounded-[2rem] shadow-soft w-full max-w-4xl max-h-[92vh] overflow-y-auto" onClick={(event) => event.stopPropagation()}>
               <form onSubmit={applyToJob} className="p-6 md:p-8 space-y-6">
                 <div className="flex items-start justify-between gap-4">
                   <div><div className="pill mb-2">Apply now</div><h3 className="text-2xl font-semibold text-slate-900">{selectedJob.jobTitle}</h3><p className="text-slate-500 mt-1">{selectedJob.company} - {selectedJob.location || 'Remote'} - {selectedJob.employmentType || 'Open type'}</p></div>
@@ -456,7 +623,7 @@ export default function Jobs() {
                 </div>
 
                 <div className="grid lg:grid-cols-[0.95fr,1.05fr] gap-5">
-                  <div className="rounded-3xl bg-slate-900 text-white p-5 space-y-4">
+                  <div className="rounded-3xl modal-subpanel-solid text-white p-5 space-y-4">
                     <div className="flex items-center gap-3"><div className="h-11 w-11 rounded-2xl bg-white/10 flex items-center justify-center"><CheckCircle2 size={20} /></div><div><p className="text-sm text-slate-300">Application checklist</p><p className="text-lg font-semibold">Before you submit</p></div></div>
                     <div className="space-y-3 text-sm text-slate-100">
                       <div className="rounded-2xl bg-white/5 border border-white/10 px-4 py-3">Upload your final CV as a PDF file from your computer.</div>

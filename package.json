@@ -1,0 +1,10 @@
+{
+  "name": "smartapply-ai-workspace",
+  "private": true,
+  "scripts": {
+    "start": "npm run backend:start",
+    "backend:start": "npm --prefix Backend run start:local",
+    "backend:status": "npm --prefix Backend run status:local",
+    "backend:test": "npm --prefix Backend run test:services"
+  }
+}

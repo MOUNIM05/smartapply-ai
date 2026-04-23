@@ -42,6 +42,39 @@ const userSchema = new mongoose.Schema(
       enum: ["user", "admin"],
       default: "user"
     },
+    subscription_plan: {
+      type: String,
+      enum: ["free", "student", "premium"],
+      default: "free"
+    },
+    subscription_status: {
+      type: String,
+      enum: ["inactive", "active", "past_due", "canceled"],
+      default: "inactive"
+    },
+    subscription_interval: {
+      type: String,
+      enum: ["monthly"],
+      default: "monthly"
+    },
+    subscription_started_at: {
+      type: Date,
+      default: null
+    },
+    subscription_renewal_at: {
+      type: Date,
+      default: null
+    },
+    stripe_customer_id: {
+      type: String,
+      default: "",
+      trim: true
+    },
+    stripe_subscription_id: {
+      type: String,
+      default: "",
+      trim: true
+    },
     profile_id: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "Profile",

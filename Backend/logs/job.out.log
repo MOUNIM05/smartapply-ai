@@ -1,0 +1,6 @@
+
+> cv-ai-job-service@1.0.0 start
+> node app/main.js
+
+MongoDB connected successfully
+Job service running on port 5002

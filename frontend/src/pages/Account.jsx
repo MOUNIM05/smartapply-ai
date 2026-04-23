@@ -12,8 +12,13 @@ const createInitialForm = (user) => ({
   last_name: user?.last_name || '',
   email: user?.email || '',
   address: user?.address || '',
-  avatar_url: user?.avatar_url || '',
-  password: ''
+  avatar_url: user?.avatar_url || ''
+})
+
+const createInitialPasswordForm = () => ({
+  current_password: '',
+  new_password: '',
+  confirm_new_password: ''
 })
 
 const resizeImageToDataUrl = (file) =>
@@ -56,8 +61,13 @@ export default function Account() {
   const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)
   const [isEditing, setIsEditing] = useState(false)
+  const [showPasswordForm, setShowPasswordForm] = useState(false)
+  const [passwordSaving, setPasswordSaving] = useState(false)
+  const [passwordSaved, setPasswordSaved] = useState(false)
+  const [passwordError, setPasswordError] = useState('')
   const fileInputRef = useRef(null)
   const [form, setForm] = useState(createInitialForm(getCurrentUser()))
+  const [passwordForm, setPasswordForm] = useState(createInitialPasswordForm())
 
   useEffect(() => {
     const loadAccount = async () => {
@@ -99,6 +109,13 @@ export default function Account() {
     }))
   }
 
+  const handlePasswordChange = (field, value) => {
+    setPasswordForm((current) => ({
+      ...current,
+      [field]: value
+    }))
+  }
+
   const handleStartEditing = () => {
     setForm(createInitialForm(user))
     setError('')
@@ -110,6 +127,18 @@ export default function Account() {
     setForm(createInitialForm(user))
     setError('')
     setIsEditing(false)
+  }
+
+  const togglePasswordForm = () => {
+    setShowPasswordForm((current) => {
+      const next = !current
+      if (!next) {
+        setPasswordForm(createInitialPasswordForm())
+        setPasswordError('')
+      }
+      return next
+    })
+    setPasswordSaved(false)
   }
 
   const handleSelectAvatar = async (event) => {
@@ -150,10 +179,6 @@ export default function Account() {
         avatar_url: form.avatar_url
       }
 
-      if (form.password.trim()) {
-        payload.password = form.password
-      }
-
       const { data } = await authApi.put('/users/me', payload)
 
       if (data?.user) {
@@ -169,6 +194,52 @@ export default function Account() {
       setError(err.response?.data?.message || 'Failed to update account.')
     } finally {
       setSaving(false)
+    }
+  }
+
+  const handlePasswordSubmit = async (event) => {
+    event.preventDefault()
+    setPasswordSaving(true)
+    setPasswordSaved(false)
+    setPasswordError('')
+
+    const currentPassword = passwordForm.current_password.trim()
+    const newPassword = passwordForm.new_password.trim()
+    const confirmPassword = passwordForm.confirm_new_password.trim()
+
+    if (!currentPassword || !newPassword || !confirmPassword) {
+      setPasswordError('Remplissez les 3 champs du mot de passe.')
+      setPasswordSaving(false)
+      return
+    }
+
+    if (newPassword.length < 6) {
+      setPasswordError('Le nouveau mot de passe doit contenir au moins 6 caracteres.')
+      setPasswordSaving(false)
+      return
+    }
+
+    if (newPassword !== confirmPassword) {
+      setPasswordError('La confirmation du nouveau mot de passe ne correspond pas.')
+      setPasswordSaving(false)
+      return
+    }
+
+    try {
+      await authApi.patch('/users/me/password', {
+        current_password: currentPassword,
+        new_password: newPassword,
+        confirm_new_password: confirmPassword
+      })
+
+      setPasswordSaved(true)
+      setPasswordForm(createInitialPasswordForm())
+      setShowPasswordForm(false)
+      window.setTimeout(() => setPasswordSaved(false), 2200)
+    } catch (err) {
+      setPasswordError(err.response?.data?.message || 'Failed to change password.')
+    } finally {
+      setPasswordSaving(false)
     }
   }
 
@@ -228,16 +299,29 @@ export default function Account() {
                   {saved && (
                     <span className="pill bg-primary/15 text-primary">Saved</span>
                   )}
+                  {passwordSaved && (
+                    <span className="pill bg-primary/15 text-primary">Password updated</span>
+                  )}
 
                   {!isEditing ? (
-                    <button
-                      type="button"
-                      onClick={handleStartEditing}
-                      className="btn-primary min-h-11"
-                    >
-                      <Pencil size={16} />
-                      Modify account
-                    </button>
+                    <>
+                      <button
+                        type="button"
+                        onClick={togglePasswordForm}
+                        className="btn-secondary min-h-11"
+                      >
+                        <Shield size={16} />
+                        Change password
+                      </button>
+                      <button
+                        type="button"
+                        onClick={handleStartEditing}
+                        className="btn-primary min-h-11"
+                      >
+                        <Pencil size={16} />
+                        Modify account
+                      </button>
+                    </>
                   ) : (
                     <>
                       <button
@@ -301,6 +385,60 @@ export default function Account() {
               </div>
             </div>
 
+            {showPasswordForm && (
+              <form className="card space-y-5" onSubmit={handlePasswordSubmit}>
+                <div className="flex items-center justify-between gap-4 flex-wrap">
+                  <div>
+                    <h3 className="text-xl font-semibold text-slate-900">Change password</h3>
+                    <p className="text-sm text-slate-500 mt-1">
+                      Enter your current password, then your new password and confirmation.
+                    </p>
+                  </div>
+                  <button type="button" onClick={togglePasswordForm} className="btn-secondary min-h-11">
+                    <X size={16} />
+                    Cancel
+                  </button>
+                </div>
+
+                {passwordError && <div className="text-sm text-red-500">{passwordError}</div>}
+
+                <div className="grid md:grid-cols-2 gap-4">
+                  <FormInput
+                    label="Current password"
+                    icon={Shield}
+                    type="password"
+                    value={passwordForm.current_password}
+                    onChange={(event) => handlePasswordChange('current_password', event.target.value)}
+                    placeholder="Enter current password"
+                    className="md:col-span-2"
+                  />
+                  <FormInput
+                    label="New password"
+                    icon={Shield}
+                    type="password"
+                    value={passwordForm.new_password}
+                    onChange={(event) => handlePasswordChange('new_password', event.target.value)}
+                    placeholder="Enter new password"
+                  />
+                  <FormInput
+                    label="Confirm new password"
+                    icon={Shield}
+                    type="password"
+                    value={passwordForm.confirm_new_password}
+                    onChange={(event) => handlePasswordChange('confirm_new_password', event.target.value)}
+                    placeholder="Confirm new password"
+                  />
+                </div>
+
+                <div className="flex justify-end">
+                  <button type="submit" disabled={passwordSaving} className="btn-primary min-h-11">
+                    {passwordSaving ? <Loader2 className="animate-spin" size={16} /> : <Shield size={16} />}
+                    {passwordSaving ? 'Saving...' : 'Update password'}
+                  </button>
+                </div>
+              </form>
+            )}
+
             {isEditing && (
               <form className="card space-y-6" onSubmit={handleSubmit}>
                 <div className="flex items-center justify-between gap-4 flex-wrap">
@@ -355,16 +493,6 @@ export default function Account() {
                     onChange={(event) => handleChange('avatar_url', event.target.value)}
                     placeholder="https://..."
                     helper="You can paste an image URL or upload a file with the camera button."
-                    className="md:col-span-2"
-                  />
-                  <FormInput
-                    label="New password"
-                    icon={Shield}
-                    type="password"
-                    value={form.password}
-                    onChange={(event) => handleChange('password', event.target.value)}
-                    placeholder="Leave blank to keep current password"
-                    helper="Minimum 6 characters if you change it."
                     className="md:col-span-2"
                   />
                 </div>

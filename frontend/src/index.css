@@ -1,16 +1,21 @@
 /* Defines global design tokens, shared component styles, and utility classes. */
-@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@400;500;600&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap');
 
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 :root {
-  --color-primary: #6366F1;
-  --color-dark: #0F172A;
-  --color-background: #F8FAFC;
-  --color-accent: #FF5A4E;
+  --color-primary: #8b5cf6;
+  --color-dark: #040408;
+  --color-background: #eaeeeb;
+  --color-accent: #c1ff34;
   --radius-xl: 1rem;
+  color-scheme: dark;
+}
+
+[data-theme='light'] {
+  color-scheme: light;
 }
 
 @layer base {
@@ -21,26 +26,118 @@
   }
   body {
     @apply bg-background text-dark antialiased;
-    font-family: 'Space Grotesk', 'Inter', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial;
+    font-family: 'Manrope', 'Plus Jakarta Sans', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
-    background: radial-gradient(circle at 20% 20%, rgba(99, 102, 241, 0.08), transparent 30%),
-      radial-gradient(circle at 80% 0%, rgba(255, 90, 78, 0.08), transparent 25%),
-      #f8fafc;
+    background:
+      radial-gradient(55rem 35rem at 5% 5%, rgba(185, 236, 99, 0.8), transparent 65%),
+      radial-gradient(55rem 42rem at 80% 90%, rgba(124, 58, 237, 0.86), transparent 65%),
+      linear-gradient(180deg, #d7ded5 0%, #dbe2d7 35%, #c8cfc9 100%);
+  }
+
+  [data-theme='light'] body {
+    @apply bg-slate-100 text-slate-900;
+    background:
+      radial-gradient(55rem 35rem at 5% 5%, rgba(185, 236, 99, 0.48), transparent 65%),
+      radial-gradient(55rem 42rem at 80% 90%, rgba(124, 58, 237, 0.28), transparent 65%),
+      linear-gradient(180deg, #eff3ef 0%, #e6ece7 35%, #dde4df 100%);
   }
 }
 
 @layer components {
+  .neo-frame {
+    @apply w-full max-w-[1380px] mx-auto rounded-[2rem] border border-white/20 bg-black/95 shadow-[0_40px_120px_rgba(0,0,0,0.5)] overflow-hidden;
+  }
+
+  .neo-app {
+    color: #e5e7eb;
+    background:
+      radial-gradient(24rem 16rem at 5% 100%, rgba(136, 92, 246, 0.17), transparent 60%),
+      radial-gradient(24rem 16rem at 96% 10%, rgba(164, 255, 93, 0.1), transparent 60%),
+      #050507;
+  }
+
+  .neo-app .text-slate-900,
+  .neo-app .text-slate-800,
+  .neo-app .text-slate-700 {
+    color: #f3f4f6 !important;
+  }
+
+  .neo-app .text-slate-600,
+  .neo-app .text-slate-500,
+  .neo-app .text-slate-400 {
+    color: #9ca3af !important;
+  }
+
+  .neo-app [class*='bg-white'],
+  .neo-app [class*='bg-slate-900'],
+  .neo-app [class*='bg-slate-800'] {
+    background-color: rgba(255, 255, 255, 0.04) !important;
+    color: #f3f4f6 !important;
+  }
+
+  .neo-app [class*='bg-slate-50'],
+  .neo-app [class*='bg-slate-100'] {
+    background-color: rgba(255, 255, 255, 0.03) !important;
+  }
+
+  .neo-app [class*='border-slate-100'],
+  .neo-app [class*='border-slate-200'],
+  .neo-app [class*='border-slate-300'] {
+    border-color: rgba(255, 255, 255, 0.09) !important;
+  }
+
+  .neo-app input,
+  .neo-app textarea,
+  .neo-app select {
+    color: #f3f4f6 !important;
+    background-color: transparent !important;
+  }
+
+  .neo-app input::placeholder,
+  .neo-app textarea::placeholder {
+    color: #6b7280 !important;
+  }
+
+  .auth-shell {
+    min-height: 100vh;
+    background:
+      radial-gradient(52rem 32rem at 6% 8%, rgba(185, 236, 99, 0.8), transparent 64%),
+      radial-gradient(52rem 42rem at 84% 88%, rgba(124, 58, 237, 0.88), transparent 66%),
+      linear-gradient(180deg, #d7ded5 0%, #dbe2d7 35%, #c8cfc9 100%);
+  }
+
   .card {
-    @apply bg-white rounded-2xl shadow-soft p-6 border border-slate-100/80;
+    @apply rounded-2xl p-6 border;
+    background: linear-gradient(180deg, rgba(20, 20, 26, 0.95) 0%, rgba(13, 13, 18, 0.95) 100%);
+    border-color: rgba(255, 255, 255, 0.09);
+    box-shadow: 0 12px 32px rgba(0, 0, 0, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.03);
+  }
+
+  .card .text-slate-900,
+  .card .text-slate-800,
+  .card .text-slate-700 {
+    color: #f3f4f6 !important;
+  }
+
+  .card .text-slate-600,
+  .card .text-slate-500,
+  .card .text-slate-400 {
+    color: #9ca3af !important;
   }
 
   .pill {
-    @apply inline-flex items-center gap-2 rounded-full bg-primary/10 text-primary px-3 py-1 text-xs font-medium;
+    @apply inline-flex items-center gap-2 rounded-full px-3 py-1 text-xs font-semibold;
+    background: rgba(255, 255, 255, 0.08);
+    color: #d1d5db;
+    border: 1px solid rgba(255, 255, 255, 0.08);
   }
 
   .glass {
-    @apply bg-white/70 backdrop-blur-md border border-white/60 shadow-lg rounded-2xl;
+    @apply rounded-2xl backdrop-blur-xl;
+    background: rgba(14, 14, 19, 0.68);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    box-shadow: 0 14px 45px rgba(0, 0, 0, 0.35);
   }
 
   .page-shell {
@@ -48,22 +145,293 @@
   }
 
   .btn-primary {
-    @apply inline-flex items-center justify-center gap-2 rounded-xl bg-primary px-4 py-2.5 text-sm font-semibold text-white shadow-soft transition hover:shadow-lg disabled:cursor-not-allowed disabled:opacity-60;
+    @apply inline-flex items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold text-white transition disabled:cursor-not-allowed disabled:opacity-60;
+    background: linear-gradient(135deg, #7c3aed, #a855f7);
+    box-shadow: 0 10px 24px rgba(124, 58, 237, 0.35);
   }
 
   .btn-secondary {
-    @apply inline-flex items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 hover:border-primary/30 hover:text-primary disabled:cursor-not-allowed disabled:opacity-60;
+    @apply inline-flex items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold transition disabled:cursor-not-allowed disabled:opacity-60;
+    background: rgba(255, 255, 255, 0.07);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    color: #d1d5db;
   }
 
   .btn-danger {
-    @apply inline-flex items-center justify-center gap-2 rounded-xl border border-red-200 bg-white px-4 py-2.5 text-sm font-semibold text-red-500 transition hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-60;
+    @apply inline-flex items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold text-red-200 transition disabled:cursor-not-allowed disabled:opacity-60;
+    background: rgba(248, 113, 113, 0.1);
+    border: 1px solid rgba(248, 113, 113, 0.35);
   }
 
   .icon-btn {
-    @apply inline-flex h-10 w-10 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-600 transition hover:border-primary/40 hover:text-primary disabled:cursor-not-allowed disabled:opacity-60;
+    @apply inline-flex h-10 w-10 items-center justify-center rounded-xl text-slate-300 transition disabled:cursor-not-allowed disabled:opacity-60;
+    background: rgba(255, 255, 255, 0.06);
+    border: 1px solid rgba(255, 255, 255, 0.1);
   }
 
   .icon-btn-danger {
-    @apply inline-flex h-10 w-10 items-center justify-center rounded-xl border border-red-200 bg-white text-red-500 transition hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-60;
+    @apply inline-flex h-10 w-10 items-center justify-center rounded-xl transition disabled:cursor-not-allowed disabled:opacity-60;
+    color: #fca5a5;
+    background: rgba(248, 113, 113, 0.1);
+    border: 1px solid rgba(248, 113, 113, 0.35);
+  }
+
+  .modal-backdrop-solid {
+    background: rgba(2, 3, 8, 0.84) !important;
+    backdrop-filter: blur(2px);
+  }
+
+  .modal-surface-solid {
+    background: linear-gradient(180deg, rgba(16, 18, 27, 0.98) 0%, rgba(10, 11, 18, 0.98) 100%) !important;
+    border: 1px solid rgba(255, 255, 255, 0.12) !important;
+    box-shadow: 0 26px 90px rgba(0, 0, 0, 0.55) !important;
+  }
+
+  .modal-subpanel-solid {
+    background: linear-gradient(180deg, rgba(26, 27, 38, 0.96) 0%, rgba(18, 19, 30, 0.96) 100%) !important;
+    border: 1px solid rgba(255, 255, 255, 0.08) !important;
+  }
+
+  .neo-app .modal-surface-solid .text-slate-900,
+  .neo-app .modal-surface-solid .text-slate-800,
+  .neo-app .modal-surface-solid .text-slate-700 {
+    color: #f3f4f6 !important;
+  }
+
+  .neo-app .modal-surface-solid .text-slate-600,
+  .neo-app .modal-surface-solid .text-slate-500,
+  .neo-app .modal-surface-solid .text-slate-400 {
+    color: #9ca3af !important;
+  }
+
+  .neo-app .modal-surface-solid [class*='bg-white'],
+  .neo-app .modal-surface-solid [class*='bg-slate-50'],
+  .neo-app .modal-surface-solid [class*='bg-slate-100'],
+  .neo-app .modal-surface-solid [class*='bg-slate-900'] {
+    background-color: rgba(255, 255, 255, 0.07) !important;
+  }
+
+  .neo-app .modal-surface-solid [class*='border-slate-100'],
+  .neo-app .modal-surface-solid [class*='border-slate-200'],
+  .neo-app .modal-surface-solid [class*='border-slate-300'] {
+    border-color: rgba(255, 255, 255, 0.16) !important;
+  }
+
+  .brand-logo-soft {
+    opacity: 0.9;
+    filter: saturate(0.88) brightness(0.94) contrast(0.94);
+    transition: filter 0.2s ease, opacity 0.2s ease;
+  }
+
+  .brand-logo-soft:hover {
+    opacity: 1;
+    filter: saturate(0.98) brightness(0.98) contrast(0.98);
+  }
+
+  .brand-mark-soft {
+    background: linear-gradient(180deg, rgba(255, 255, 255, 0.09) 0%, rgba(255, 255, 255, 0.05) 100%);
+    border: 1px solid rgba(255, 255, 255, 0.14);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.18), 0 8px 24px rgba(5, 5, 7, 0.25);
+    filter: saturate(0.9) brightness(0.96);
+    transition: filter 0.2s ease, background 0.2s ease;
+  }
+
+  .brand-mark-soft:hover {
+    filter: saturate(1) brightness(1);
+    background: linear-gradient(180deg, rgba(255, 255, 255, 0.14) 0%, rgba(255, 255, 255, 0.08) 100%);
+  }
+
+  [data-theme='light'] .neo-frame {
+    border-color: rgba(15, 23, 42, 0.12);
+    background: rgba(255, 255, 255, 0.92);
+    box-shadow: 0 30px 80px rgba(15, 23, 42, 0.16);
+  }
+
+  [data-theme='light'] .neo-app {
+    color: #0f172a;
+    background:
+      radial-gradient(24rem 16rem at 5% 100%, rgba(136, 92, 246, 0.12), transparent 60%),
+      radial-gradient(24rem 16rem at 96% 10%, rgba(164, 255, 93, 0.14), transparent 60%),
+      #f8fafc;
+  }
+
+  [data-theme='light'] .neo-app .text-slate-900,
+  [data-theme='light'] .neo-app .text-slate-800,
+  [data-theme='light'] .neo-app .text-slate-700 {
+    color: #0f172a !important;
+  }
+
+  [data-theme='light'] .neo-app .text-slate-600,
+  [data-theme='light'] .neo-app .text-slate-500,
+  [data-theme='light'] .neo-app .text-slate-400 {
+    color: #475569 !important;
+  }
+
+  [data-theme='light'] .neo-app [class*='bg-white'],
+  [data-theme='light'] .neo-app [class*='bg-slate-900'],
+  [data-theme='light'] .neo-app [class*='bg-slate-800'] {
+    background-color: rgba(255, 255, 255, 0.85) !important;
+    color: #0f172a !important;
+  }
+
+  [data-theme='light'] .neo-app [class*='border-white'] {
+    border-color: rgba(15, 23, 42, 0.18) !important;
+  }
+
+  [data-theme='light'] .neo-app [class*='divide-white'] > :not([hidden]) ~ :not([hidden]) {
+    border-color: rgba(15, 23, 42, 0.14) !important;
+  }
+
+  [data-theme='light'] .neo-app [class*='bg-slate-50'],
+  [data-theme='light'] .neo-app [class*='bg-slate-100'] {
+    background-color: rgba(255, 255, 255, 0.7) !important;
+  }
+
+  [data-theme='light'] .neo-app [class*='border-slate-100'],
+  [data-theme='light'] .neo-app [class*='border-slate-200'],
+  [data-theme='light'] .neo-app [class*='border-slate-300'] {
+    border-color: rgba(15, 23, 42, 0.14) !important;
+  }
+
+  [data-theme='light'] .neo-app input,
+  [data-theme='light'] .neo-app textarea,
+  [data-theme='light'] .neo-app select {
+    color: #0f172a !important;
+  }
+
+  [data-theme='light'] .neo-app input::placeholder,
+  [data-theme='light'] .neo-app textarea::placeholder {
+    color: #64748b !important;
+  }
+
+  [data-theme='light'] .card {
+    background: linear-gradient(180deg, rgba(255, 255, 255, 0.96) 0%, rgba(248, 250, 252, 0.96) 100%);
+    border-color: rgba(15, 23, 42, 0.14);
+    box-shadow: 0 12px 32px rgba(15, 23, 42, 0.12), inset 0 1px 0 rgba(255, 255, 255, 0.8);
+  }
+
+  [data-theme='light'] .pill {
+    background: rgba(15, 23, 42, 0.06);
+    color: #334155;
+    border-color: rgba(15, 23, 42, 0.1);
+  }
+
+  [data-theme='light'] .glass {
+    background: rgba(255, 255, 255, 0.72);
+    border: 1px solid rgba(15, 23, 42, 0.14);
+    box-shadow: 0 14px 45px rgba(15, 23, 42, 0.12);
+  }
+
+  [data-theme='light'] .btn-secondary {
+    background: rgba(15, 23, 42, 0.06);
+    border-color: rgba(15, 23, 42, 0.14);
+    color: #334155;
+  }
+
+  [data-theme='light'] .icon-btn {
+    background: rgba(15, 23, 42, 0.06);
+    border-color: rgba(15, 23, 42, 0.14);
+    color: #334155;
+  }
+
+  [data-theme='light'] .app-navbar {
+    background: rgba(248, 250, 252, 0.88) !important;
+    border-bottom-color: rgba(15, 23, 42, 0.12) !important;
+  }
+
+  [data-theme='light'] .app-brand-btn {
+    background: rgba(255, 255, 255, 0.86) !important;
+    border-color: rgba(15, 23, 42, 0.12) !important;
+  }
+
+  [data-theme='light'] .app-navbar-tab {
+    background: rgba(255, 255, 255, 0.8) !important;
+    color: #334155 !important;
+    border-color: rgba(15, 23, 42, 0.1) !important;
+  }
+
+  [data-theme='light'] .app-navbar-tab.active {
+    background: #0f172a !important;
+    color: #ffffff !important;
+    border-color: transparent !important;
+  }
+
+  [data-theme='light'] .app-search-shell {
+    background: rgba(255, 255, 255, 0.88) !important;
+    border-color: rgba(15, 23, 42, 0.12) !important;
+  }
+
+  [data-theme='light'] .app-search-input {
+    color: #0f172a !important;
+  }
+
+  [data-theme='light'] .app-icon-circle {
+    border-color: rgba(15, 23, 42, 0.14) !important;
+    color: #334155 !important;
+    background: rgba(255, 255, 255, 0.75) !important;
+  }
+
+  [data-theme='light'] .app-notification-panel {
+    background: rgba(255, 255, 255, 0.98) !important;
+    border-color: rgba(15, 23, 42, 0.12) !important;
+    box-shadow: 0 24px 80px rgba(15, 23, 42, 0.2) !important;
+  }
+
+  [data-theme='light'] .app-user-shell {
+    background: rgba(255, 255, 255, 0.82) !important;
+    border-color: rgba(15, 23, 42, 0.12) !important;
+  }
+
+  [data-theme='light'] .brand-logo-soft {
+    opacity: 0.96;
+    filter: saturate(0.92) brightness(0.96) contrast(0.96);
+  }
+
+  [data-theme='light'] .brand-mark-soft {
+    background: linear-gradient(180deg, rgba(255, 255, 255, 0.98) 0%, rgba(248, 250, 252, 0.95) 100%);
+    border-color: rgba(15, 23, 42, 0.12);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.86), 0 8px 24px rgba(15, 23, 42, 0.08);
+    filter: saturate(0.9) brightness(0.95);
+  }
+
+  [data-theme='light'] .modal-backdrop-solid {
+    background: rgba(15, 23, 42, 0.45) !important;
+    backdrop-filter: blur(2px);
+  }
+
+  [data-theme='light'] .modal-surface-solid {
+    background: linear-gradient(180deg, rgba(255, 255, 255, 0.99) 0%, rgba(245, 247, 250, 0.99) 100%) !important;
+    border: 1px solid rgba(15, 23, 42, 0.14) !important;
+    box-shadow: 0 24px 80px rgba(15, 23, 42, 0.22) !important;
+  }
+
+  [data-theme='light'] .modal-subpanel-solid {
+    background: linear-gradient(180deg, rgba(241, 245, 249, 0.96) 0%, rgba(235, 240, 246, 0.96) 100%) !important;
+    border: 1px solid rgba(15, 23, 42, 0.1) !important;
+  }
+
+  [data-theme='light'] .neo-app .modal-surface-solid .text-slate-900,
+  [data-theme='light'] .neo-app .modal-surface-solid .text-slate-800,
+  [data-theme='light'] .neo-app .modal-surface-solid .text-slate-700 {
+    color: #0f172a !important;
+  }
+
+  [data-theme='light'] .neo-app .modal-surface-solid .text-slate-600,
+  [data-theme='light'] .neo-app .modal-surface-solid .text-slate-500,
+  [data-theme='light'] .neo-app .modal-surface-solid .text-slate-400 {
+    color: #475569 !important;
+  }
+
+  [data-theme='light'] .neo-app .modal-surface-solid [class*='bg-white'],
+  [data-theme='light'] .neo-app .modal-surface-solid [class*='bg-slate-50'],
+  [data-theme='light'] .neo-app .modal-surface-solid [class*='bg-slate-100'],
+  [data-theme='light'] .neo-app .modal-surface-solid [class*='bg-slate-900'] {
+    background-color: rgba(255, 255, 255, 0.9) !important;
+  }
+
+  [data-theme='light'] .neo-app .modal-surface-solid [class*='border-slate-100'],
+  [data-theme='light'] .neo-app .modal-surface-solid [class*='border-slate-200'],
+  [data-theme='light'] .neo-app .modal-surface-solid [class*='border-slate-300'] {
+    border-color: rgba(15, 23, 42, 0.14) !important;
   }
 }

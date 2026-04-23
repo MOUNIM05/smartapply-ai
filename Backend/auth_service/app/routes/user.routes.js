@@ -5,6 +5,7 @@ const { verifyToken, requireAdmin } = require("../middlewares/auth.middleware");
 const {
   getMeController,
   updateMeController,
+  changeMyPasswordController,
   deleteMeController,
   listUsersController,
   getUserByIdController,
@@ -17,6 +18,7 @@ const router = express.Router();
 
 router.get("/users/me", verifyToken, getMeController);
 router.put("/users/me", verifyToken, updateMeController);
+router.patch("/users/me/password", verifyToken, changeMyPasswordController);
 router.delete("/users/me", verifyToken, deleteMeController);
 
 router.get("/users", verifyToken, requireAdmin, listUsersController);

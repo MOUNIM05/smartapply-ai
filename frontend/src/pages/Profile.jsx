@@ -1,10 +1,10 @@
 // Renders the Profile page and coordinates its UI state.
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { motion } from 'framer-motion'
-import { Camera, Phone, MapPin, Save, CheckCircle2, Link as LinkIcon, Trash2, Plus } from 'lucide-react'
+import { Camera, Phone, MapPin, Save, CheckCircle2, Link as LinkIcon, Trash2, Plus, Eye, Pencil, Upload, Loader2 } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import FormInput from '../components/FormInput'
-import { authApi, getAuthToken, getCurrentUser, getCurrentUserRole, setCurrentUser, profileApi } from '../services/api'
+import { aiApi, authApi, getAuthToken, getCurrentUser, getCurrentUserRole, setCurrentUser, profileApi } from '../services/api'
 
 const container = {
   hidden: { opacity: 0, y: 18 },
@@ -21,21 +21,68 @@ const emptyProfile = {
   portfolio_url: ''
 }
 
+const readFileAsBase64 = (file) =>
+  new Promise((resolve, reject) => {
+    const reader = new FileReader()
+    reader.onload = () => {
+      const result = typeof reader.result === 'string' ? reader.result : ''
+      const contentBase64 = result.includes(',') ? result.split(',').pop() : result
+      resolve(contentBase64 || '')
+    }
+    reader.onerror = () => reject(new Error('Failed to read CV file.'))
+    reader.readAsDataURL(file)
+  })
+
+const inferMimeType = (file) => {
+  if (file.type) return file.type
+  const name = String(file.name || '').toLowerCase()
+  if (name.endsWith('.pdf')) return 'application/pdf'
+  if (name.endsWith('.docx')) return 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+  if (name.endsWith('.md')) return 'text/markdown'
+  if (name.endsWith('.txt')) return 'text/plain'
+  return 'application/octet-stream'
+}
+
 export default function Profile() {
   const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [showAdminForm, setShowAdminForm] = useState(false)
+  const [cvImporting, setCvImporting] = useState(false)
+  const [cvDeleting, setCvDeleting] = useState(false)
+  const [cvImportMessage, setCvImportMessage] = useState('')
+  const [storedCv, setStoredCv] = useState(null)
   const navigate = useNavigate()
   const role = getCurrentUserRole()
   const isAdmin = role === 'admin'
+  const cvInputRef = useRef(null)
 
   const [form, setForm] = useState(emptyProfile)
   const [currentUser, setCurrentUserState] = useState(getCurrentUser())
   const [profiles, setProfiles] = useState([])
   const [users, setUsers] = useState([])
   const [adminForm, setAdminForm] = useState({ user_id: '', ...emptyProfile })
+  const [adminDetailId, setAdminDetailId] = useState('')
+  const [adminEditId, setAdminEditId] = useState('')
+  const [adminEditForm, setAdminEditForm] = useState({
+    first_name: '',
+    last_name: '',
+    professional_title: '',
+    phone: '',
+    address: '',
+    role: 'user'
+  })
+
+  const loadAdminResources = async () => {
+    const [profilesResponse, usersResponse] = await Promise.all([
+      profileApi.get('/profiles'),
+      authApi.get('/users')
+    ])
+
+    setProfiles(profilesResponse.data?.profiles || [])
+    setUsers(usersResponse.data?.users || [])
+  }
 
   useEffect(() => {
     const token = getAuthToken()
@@ -47,13 +94,7 @@ export default function Profile() {
     const loadData = async () => {
       try {
         if (isAdmin) {
-          const [profilesResponse, usersResponse] = await Promise.all([
-            profileApi.get('/profiles'),
-            authApi.get('/users')
-          ])
-
-          setProfiles(profilesResponse.data?.profiles || [])
-          setUsers(usersResponse.data?.users || [])
+          await loadAdminResources()
         } else {
           const [profileResponse, userResponse] = await Promise.all([
             profileApi.get('/profiles/me'),
@@ -70,6 +111,7 @@ export default function Profile() {
               github_url: profileResponse.data.profile.github_url || '',
               portfolio_url: profileResponse.data.profile.portfolio_url || ''
             })
+            setStoredCv(profileResponse.data.profile.cv_upload || null)
           }
 
           if (userResponse.data?.user) {
@@ -163,6 +205,340 @@ export default function Profile() {
     setShowAdminForm(false)
   }
 
+  const getProfileUserId = (profile) =>
+    String(profile?.user_id?._id || profile?.user_id || profile?.user?.id || profile?.user?._id || '')
+
+  const resolveProfileUser = (profile) => {
+    if (!profile) return null
+    const profileUserId = getProfileUserId(profile)
+    return (
+      users.find((user) => String(user.id || user._id) === profileUserId)
+      || profile.user
+      || null
+    )
+  }
+
+  const handleToggleAdminDetails = (profileId) => {
+    setAdminDetailId((current) => (current === profileId ? '' : profileId))
+  }
+
+  const openAdminEdit = (profile) => {
+    const owner = resolveProfileUser(profile)
+    const profileUserId = getProfileUserId(profile)
+    setAdminEditId(profile.id)
+    setAdminEditForm({
+      first_name: owner?.first_name || '',
+      last_name: owner?.last_name || '',
+      professional_title: profile.professional_title || '',
+      phone: profile.phone || '',
+      address: profile.address || '',
+      role: owner?.role || 'user'
+    })
+    if (!owner && !profileUserId) {
+      setError("Impossible de retrouver l'utilisateur lie a ce profil.")
+    }
+  }
+
+  const upsertMyProfile = async (payload) => {
+    try {
+      await profileApi.put('/profiles/me', payload)
+    } catch (err) {
+      if (err.response?.status === 404) {
+        await profileApi.post('/profiles', payload)
+      } else {
+        throw err
+      }
+    }
+  }
+
+  const syncParsedCollections = async (parsedProfile) => {
+    const [skillsResponse, languagesResponse, experiencesResponse, educationsResponse] = await Promise.all([
+      profileApi.get('/skills/me').catch(() => ({ data: { skills: [] } })),
+      profileApi.get('/languages/me').catch(() => ({ data: { languages: [] } })),
+      profileApi.get('/experiences/me').catch(() => ({ data: { experiences: [] } })),
+      profileApi.get('/educations/me').catch(() => ({ data: { educations: [] } }))
+    ])
+
+    const existingSkillSet = new Set((skillsResponse.data?.skills || []).map((item) => String(item.name || '').toLowerCase()))
+    const existingLanguageSet = new Set((languagesResponse.data?.languages || []).map((item) => String(item.name || '').toLowerCase()))
+    const existingExperienceSet = new Set(
+      (experiencesResponse.data?.experiences || []).map((item) => `${String(item.jobTitle || '').toLowerCase()}|${String(item.company || '').toLowerCase()}`)
+    )
+    const existingEducationSet = new Set(
+      (educationsResponse.data?.educations || []).map((item) => `${String(item.title || '').toLowerCase()}|${String(item.school || '').toLowerCase()}`)
+    )
+
+    const parsedSkills = Array.isArray(parsedProfile?.skills) ? parsedProfile.skills : []
+    for (const rawName of parsedSkills) {
+      const name = String(rawName || '').trim()
+      const key = name.toLowerCase()
+      if (!name || existingSkillSet.has(key)) continue
+      try {
+        await profileApi.post('/skills', { name })
+        existingSkillSet.add(key)
+      } catch {
+        // Ignore individual row failures to keep import resilient.
+      }
+    }
+
+    const parsedLanguages = Array.isArray(parsedProfile?.languages) ? parsedProfile.languages : []
+    for (const rawLanguage of parsedLanguages) {
+      const name = String(rawLanguage?.name || rawLanguage || '').trim()
+      const level = String(rawLanguage?.level || '').trim()
+      const key = name.toLowerCase()
+      if (!name || existingLanguageSet.has(key)) continue
+      try {
+        await profileApi.post('/languages', { name, level })
+        existingLanguageSet.add(key)
+      } catch {
+        // Ignore individual row failures to keep import resilient.
+      }
+    }
+
+    const parsedExperiences = Array.isArray(parsedProfile?.experiences) ? parsedProfile.experiences : []
+    for (const rawExperience of parsedExperiences) {
+      const jobTitle = String(rawExperience?.jobTitle || '').trim()
+      const company = String(rawExperience?.company || 'Company not specified').trim()
+      const key = `${jobTitle.toLowerCase()}|${company.toLowerCase()}`
+      if (!jobTitle || existingExperienceSet.has(key)) continue
+      try {
+        await profileApi.post('/experiences', {
+          jobTitle,
+          company,
+          startDate: String(rawExperience?.startDate || '').trim(),
+          endDate: String(rawExperience?.endDate || '').trim(),
+          description: String(rawExperience?.description || '').trim(),
+          skills: Array.isArray(rawExperience?.skills)
+            ? rawExperience.skills.map((item) => String(item).trim()).filter(Boolean)
+            : []
+        })
+        existingExperienceSet.add(key)
+      } catch {
+        // Ignore individual row failures to keep import resilient.
+      }
+    }
+
+    const parsedEducations = Array.isArray(parsedProfile?.educations) ? parsedProfile.educations : []
+    for (const rawEducation of parsedEducations) {
+      const title = String(rawEducation?.title || '').trim()
+      const school = String(rawEducation?.school || '').trim()
+      const key = `${title.toLowerCase()}|${school.toLowerCase()}`
+      if (!title || !school || existingEducationSet.has(key)) continue
+      try {
+        await profileApi.post('/educations', {
+          title,
+          school,
+          period: String(rawEducation?.period || '').trim()
+        })
+        existingEducationSet.add(key)
+      } catch {
+        // Ignore individual row failures to keep import resilient.
+      }
+    }
+  }
+
+  const handleCVUpload = async (event) => {
+    const file = event.target.files?.[0]
+    if (!file) return
+
+    setCvImporting(true)
+    setCvImportMessage('')
+    setError('')
+
+    const mimeType = inferMimeType(file)
+    const allowedMimeTypes = new Set([
+      'application/pdf',
+      'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+      'text/plain',
+      'text/markdown'
+    ])
+
+    if (!allowedMimeTypes.has(mimeType)) {
+      setCvImporting(false)
+      setCvImportMessage('Format non supporte. Utilisez PDF, DOCX ou TXT.')
+      event.target.value = ''
+      return
+    }
+
+    if (file.size > 5 * 1024 * 1024) {
+      setCvImporting(false)
+      setCvImportMessage('Le CV depasse 5 MB. Choisissez un fichier plus petit.')
+      event.target.value = ''
+      return
+    }
+
+    try {
+      const contentBase64 = await readFileAsBase64(file)
+
+      const saveResponse = await profileApi.put('/profiles/me/cv', {
+        fileName: file.name,
+        mimeType,
+        contentBase64,
+        size: file.size
+      })
+      setStoredCv(saveResponse.data?.cvUpload || {
+        fileName: file.name,
+        mimeType,
+        size: file.size,
+        uploadedAt: new Date().toISOString(),
+        hasFile: true
+      })
+
+      try {
+        const { data } = await aiApi.post('/ai-cv-parse', {
+          fileName: file.name,
+          mimeType,
+          contentBase64
+        })
+
+        const parsedProfile = data?.parsedProfile || {}
+        let nextForm = null
+
+        setForm((previous) => {
+          nextForm = {
+            ...previous,
+            professional_title: parsedProfile.professional_title || previous.professional_title,
+            summary: parsedProfile.summary || previous.summary,
+            phone: parsedProfile.phone || previous.phone,
+            address: parsedProfile.address || previous.address
+          }
+          return nextForm
+        })
+
+        if (nextForm) {
+          await upsertMyProfile(nextForm)
+        }
+
+        await syncParsedCollections(parsedProfile)
+
+        setSaved(true)
+        setTimeout(() => setSaved(false), 2000)
+        setCvImportMessage('CV enregistre. Les informations et experiences ont ete importees.')
+      } catch (parseError) {
+        setCvImportMessage('CV enregistre, mais l extraction automatique a echoue. Vous pouvez reessayer.')
+        setError(parseError.response?.data?.message || 'CV saved but AI parsing failed.')
+      }
+    } catch (err) {
+      setError(err.response?.data?.message || 'Import CV failed.')
+      setCvImportMessage('')
+    } finally {
+      setCvImporting(false)
+      event.target.value = ''
+    }
+  }
+
+  const handleDeleteStoredCV = async () => {
+    try {
+      setCvDeleting(true)
+      setError('')
+      setCvImportMessage('')
+      await profileApi.delete('/profiles/me/cv')
+      setStoredCv(null)
+      setCvImportMessage('CV supprime avec succes.')
+    } catch (err) {
+      setError(err.response?.data?.message || 'Failed to delete CV.')
+    } finally {
+      setCvDeleting(false)
+    }
+  }
+
+  const cancelAdminEdit = () => {
+    setAdminEditId('')
+    setAdminEditForm({
+      first_name: '',
+      last_name: '',
+      professional_title: '',
+      phone: '',
+      address: '',
+      role: 'user'
+    })
+  }
+
+  const saveAdminProfileChanges = async (event, profile) => {
+    event.preventDefault()
+    setSaving(true)
+    setError('')
+
+    const firstName = adminEditForm.first_name.trim()
+    const lastName = adminEditForm.last_name.trim()
+    const professionalTitle = adminEditForm.professional_title.trim()
+    if (!firstName || !lastName || !professionalTitle) {
+      setError('Nom, prenom et poste sont obligatoires.')
+      setSaving(false)
+      return
+    }
+
+    const owner = resolveProfileUser(profile)
+    const profileUserId = getProfileUserId(profile)
+    const ownerId = String(owner?.id || owner?._id || profileUserId || '').trim()
+
+    try {
+      const profilePayload = {
+        professional_title: professionalTitle,
+        phone: adminEditForm.phone || '',
+        address: adminEditForm.address || ''
+      }
+
+      const userPayload = {
+        first_name: firstName,
+        last_name: lastName,
+        address: adminEditForm.address || '',
+        role: adminEditForm.role
+      }
+
+      let updatedUser = null
+      const [profileResponse, userResponse] = await Promise.all([
+        profileApi.put(`/profiles/${profile.id}`, profilePayload),
+        ownerId ? authApi.put(`/users/${ownerId}`, userPayload) : Promise.resolve({ data: null })
+      ])
+      updatedUser = userResponse?.data?.user || null
+
+      const data = profileResponse?.data
+      const updatedProfile = data?.profile
+
+      if (updatedProfile) {
+        const mergedProfile = updatedUser
+          ? {
+              ...updatedProfile,
+              user_id: updatedProfile.user_id || updatedUser.id,
+              user: updatedUser
+            }
+          : updatedProfile
+
+        setProfiles((current) => current.map((item) => (item.id === mergedProfile.id ? mergedProfile : item)))
+      } else {
+        setProfiles((current) =>
+          current.map((item) =>
+            item.id === profile.id
+              ? {
+                  ...item,
+                  ...profilePayload
+                }
+              : item
+          )
+        )
+      }
+
+      if (updatedUser) {
+        setUsers((current) =>
+          current.some((user) => String(user.id || user._id) === String(updatedUser.id))
+            ? current.map((user) => (String(user.id || user._id) === String(updatedUser.id) ? updatedUser : user))
+            : [updatedUser, ...current]
+        )
+      }
+
+      await loadAdminResources()
+
+      setSaved(true)
+      setTimeout(() => setSaved(false), 2000)
+      cancelAdminEdit()
+    } catch (err) {
+      setError(err.response?.data?.message || 'Failed to update profile.')
+    } finally {
+      setSaving(false)
+    }
+  }
+
   if (isAdmin) {
     return (
       <motion.div initial="hidden" animate="show" variants={container} className="min-h-screen">
@@ -250,22 +626,139 @@ export default function Profile() {
               <div className="card text-sm text-slate-500">No profiles available yet.</div>
             )}
             {profiles.map((profile) => (
-              <div key={profile.id} className="card flex items-start justify-between gap-4">
-                <div>
-                  <p className="text-lg font-semibold text-slate-900">
-                    {[profile.user?.first_name, profile.user?.last_name].filter(Boolean).join(' ') || profile.user?.email || 'Unknown user'}
-                  </p>
-                  <p className="text-sm text-slate-500">{profile.professional_title || 'No professional title'}</p>
-                  <p className="text-sm text-slate-600 mt-2">{profile.summary || 'No summary'}</p>
-                  <p className="text-xs text-slate-400 mt-2">{profile.user?.email}</p>
-                </div>
-                <button
-                  onClick={() => deleteAdminProfile(profile.id)}
-                  className="btn-danger"
-                >
-                  <Trash2 size={16} />
-                  Delete
-                </button>
+              <div key={profile.id} className="card space-y-4">
+                {(() => {
+                  const owner = resolveProfileUser(profile)
+                  const ownerName = [owner?.first_name, owner?.last_name].filter(Boolean).join(' ') || owner?.email || 'Unknown user'
+                  const ownerEmail = owner?.email || '-'
+                  const ownerRole = owner?.role || 'user'
+
+                  return (
+                    <>
+                      <div className="flex items-start justify-between gap-4 flex-wrap">
+                        <div>
+                          <p className="text-lg font-semibold text-slate-900">{ownerName}</p>
+                          <p className="text-sm text-slate-500">{profile.professional_title || 'No professional title'}</p>
+                          <p className="text-sm text-slate-600 mt-2">{profile.summary || 'No summary'}</p>
+                          <p className="text-xs text-slate-400 mt-2">{ownerEmail}</p>
+                        </div>
+
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <button
+                            type="button"
+                            onClick={() => handleToggleAdminDetails(profile.id)}
+                            className="btn-secondary"
+                          >
+                            <Eye size={16} />
+                            Details
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => openAdminEdit(profile)}
+                            className="btn-secondary"
+                          >
+                            <Pencil size={16} />
+                            Edit
+                          </button>
+                          <button
+                            onClick={() => deleteAdminProfile(profile.id)}
+                            className="btn-danger"
+                          >
+                            <Trash2 size={16} />
+                            Delete
+                          </button>
+                        </div>
+                      </div>
+
+                      {adminDetailId === profile.id && (
+                        <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-4 grid md:grid-cols-2 gap-3 text-sm">
+                          <div>
+                            <p className="text-slate-500">Nom</p>
+                            <p className="text-slate-900 mt-1">{owner?.last_name || '-'}</p>
+                          </div>
+                          <div>
+                            <p className="text-slate-500">Prenom</p>
+                            <p className="text-slate-900 mt-1">{owner?.first_name || '-'}</p>
+                          </div>
+                          <div>
+                            <p className="text-slate-500">Role</p>
+                            <p className="text-slate-900 mt-1">{ownerRole}</p>
+                          </div>
+                          <div>
+                            <p className="text-slate-500">Poste</p>
+                            <p className="text-slate-900 mt-1">{profile.professional_title || '-'}</p>
+                          </div>
+                          <div>
+                            <p className="text-slate-500">Phone</p>
+                            <p className="text-slate-900 mt-1">{profile.phone || '-'}</p>
+                          </div>
+                          <div>
+                            <p className="text-slate-500">Address</p>
+                            <p className="text-slate-900 mt-1">{profile.address || '-'}</p>
+                          </div>
+                          <div>
+                            <p className="text-slate-500">Email</p>
+                            <p className="text-slate-900 mt-1 break-all">{ownerEmail}</p>
+                          </div>
+                        </div>
+                      )}
+
+                      {adminEditId === profile.id && (
+                        <form className="rounded-2xl border border-white/10 bg-white/[0.03] p-4 grid md:grid-cols-2 gap-4" onSubmit={(event) => saveAdminProfileChanges(event, profile)}>
+                          <FormInput
+                            label="Nom"
+                            value={adminEditForm.last_name}
+                            onChange={(e) => setAdminEditForm((current) => ({ ...current, last_name: e.target.value }))}
+                            required
+                          />
+                          <FormInput
+                            label="Prenom"
+                            value={adminEditForm.first_name}
+                            onChange={(e) => setAdminEditForm((current) => ({ ...current, first_name: e.target.value }))}
+                            required
+                          />
+                          <FormInput
+                            label="Poste"
+                            value={adminEditForm.professional_title}
+                            onChange={(e) => setAdminEditForm((current) => ({ ...current, professional_title: e.target.value }))}
+                            required
+                          />
+                          <label className="flex flex-col gap-1.5 text-sm">
+                            <span className="text-slate-600 font-medium">Role</span>
+                            <select
+                              value={adminEditForm.role}
+                              onChange={(e) => setAdminEditForm((current) => ({ ...current, role: e.target.value }))}
+                              className="bg-white/90 border border-slate-200 rounded-xl px-3 py-3 text-slate-800 outline-none"
+                            >
+                              <option value="user">user</option>
+                              <option value="admin">admin</option>
+                            </select>
+                          </label>
+                          <FormInput
+                            label="Phone"
+                            icon={Phone}
+                            value={adminEditForm.phone}
+                            onChange={(e) => setAdminEditForm((current) => ({ ...current, phone: e.target.value }))}
+                          />
+                          <FormInput
+                            label="Address"
+                            icon={MapPin}
+                            value={adminEditForm.address}
+                            onChange={(e) => setAdminEditForm((current) => ({ ...current, address: e.target.value }))}
+                          />
+                          <div className="md:col-span-2 flex justify-end gap-3">
+                            <button type="button" onClick={cancelAdminEdit} className="btn-secondary">
+                              Cancel
+                            </button>
+                            <button type="submit" className="btn-primary" disabled={saving}>
+                              {saving ? 'Saving...' : 'Save changes'}
+                            </button>
+                          </div>
+                        </form>
+                      )}
+                    </>
+                  )
+                })()}
               </div>
             ))}
           </div>
@@ -346,6 +839,53 @@ export default function Profile() {
               <p className="text-sm text-slate-600 mt-3">
                 Keep this section updated so AI-generated documents reuse accurate profile information.
               </p>
+              <input
+                ref={cvInputRef}
+                type="file"
+                accept=".pdf,.docx,.txt,.md,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document,text/plain,text/markdown"
+                className="hidden"
+                onChange={handleCVUpload}
+              />
+              <div className="mt-5 w-full rounded-2xl border border-dashed border-white/20 bg-white/[0.03] p-4 text-left">
+                <p className="text-sm font-medium text-slate-100">Import your existing CV</p>
+                <p className="text-xs text-slate-400 mt-1">
+                  Upload PDF, DOCX or TXT. Only one CV is saved per account (new upload replaces old one).
+                </p>
+                {storedCv?.hasFile && (
+                  <div className="mt-3 rounded-xl border border-white/15 bg-white/[0.04] px-3 py-2 text-xs text-slate-300">
+                    <p className="font-medium text-slate-100 break-all">{storedCv.fileName}</p>
+                    <p className="mt-1 text-slate-400">
+                      {(storedCv.mimeType || '').toUpperCase()} - {storedCv.size ? `${Math.max(1, Math.round(storedCv.size / 1024))} KB` : '0 KB'}
+                    </p>
+                    {storedCv.uploadedAt && (
+                      <p className="mt-1 text-slate-500">
+                        Uploaded: {new Date(storedCv.uploadedAt).toLocaleString()}
+                      </p>
+                    )}
+                  </div>
+                )}
+                <button
+                  type="button"
+                  onClick={() => cvInputRef.current?.click()}
+                  disabled={cvImporting || cvDeleting}
+                  className="btn-secondary mt-3 w-full justify-center"
+                >
+                  {cvImporting ? <Loader2 size={16} className="animate-spin" /> : <Upload size={16} />}
+                  {cvImporting ? 'Importing CV...' : storedCv?.hasFile ? 'Replace saved CV' : 'Upload CV for AI import'}
+                </button>
+                {storedCv?.hasFile && (
+                  <button
+                    type="button"
+                    onClick={handleDeleteStoredCV}
+                    disabled={cvDeleting || cvImporting}
+                    className="btn-danger mt-2 w-full justify-center"
+                  >
+                    {cvDeleting ? <Loader2 size={16} className="animate-spin" /> : <Trash2 size={16} />}
+                    {cvDeleting ? 'Deleting CV...' : 'Delete saved CV'}
+                  </button>
+                )}
+                {cvImportMessage && <p className="text-xs text-primary mt-2">{cvImportMessage}</p>}
+              </div>
             </motion.div>
 
             <motion.div

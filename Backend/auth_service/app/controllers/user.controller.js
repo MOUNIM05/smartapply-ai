@@ -2,10 +2,16 @@
  * Controleur HTTP - user.controller.js
  * Recoit les requetes Express, appelle la couche service et renvoie les reponses JSON.
  */
-const { validateUpdateMeRequest, validateCreateUserRequest, validateAdminUpdateUserRequest } = require("../schemas/user.schema");
+const {
+  validateUpdateMeRequest,
+  validateChangePasswordRequest,
+  validateCreateUserRequest,
+  validateAdminUpdateUserRequest
+} = require("../schemas/user.schema");
 const {
   getCurrentUser,
   updateCurrentUser,
+  changeCurrentUserPassword,
   deleteCurrentUser,
   listUsers,
   getUserById,
@@ -27,6 +33,16 @@ const updateMeController = async (req, res, next) => {
   try {
     const updates = validateUpdateMeRequest(req.body);
     const result = await updateCurrentUser(req.user.userId, updates);
+    res.status(200).json(result);
+  } catch (error) {
+    next(error);
+  }
+};
+
+const changeMyPasswordController = async (req, res, next) => {
+  try {
+    const payload = validateChangePasswordRequest(req.body);
+    const result = await changeCurrentUserPassword(req.user.userId, payload);
     res.status(200).json(result);
   } catch (error) {
     next(error);
@@ -92,6 +108,7 @@ const deleteUserByIdController = async (req, res, next) => {
 module.exports = {
   getMeController,
   updateMeController,
+  changeMyPasswordController,
   deleteMeController,
   listUsersController,
   getUserByIdController,

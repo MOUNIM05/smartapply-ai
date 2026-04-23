@@ -1,9 +1,12 @@
-// Renders the Subscription page and coordinates its UI state.
+// Renders the Subscription page and coordinates checkout actions.
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { motion } from 'framer-motion'
-import { ArrowRight, BadgeCheck, GraduationCap, ShieldCheck, Sparkles, Stars } from 'lucide-react'
+import { ArrowRight, BadgeCheck, GraduationCap, Loader2, ShieldCheck, Sparkles, Stars } from 'lucide-react'
+import { authApi, getCurrentUser, setCurrentUser } from '../services/api'
 
 const plans = [
   {
+    planKey: 'free',
     name: 'Free',
     price: '0€',
     badge: 'Start',
@@ -17,9 +20,10 @@ const plans = [
       'Limited CV generation',
       'Access to notifications'
     ],
-    cta: 'Current best start'
+    cta: 'Included by default'
   },
   {
+    planKey: 'student',
     name: 'Student',
     price: '49€',
     badge: 'Popular',
@@ -33,9 +37,10 @@ const plans = [
       'Priority CV and letter workflows',
       'Student-focused application boost'
     ],
-    cta: 'Choose Student'
+    cta: 'Upgrade monthly'
   },
   {
+    planKey: 'premium',
     name: 'Premium',
     price: '99€',
     badge: 'Best value',
@@ -49,7 +54,7 @@ const plans = [
       'Priority support',
       'Premium profile and application tools'
     ],
-    cta: 'Go Premium'
+    cta: 'Upgrade monthly'
   }
 ]
 
@@ -68,7 +73,159 @@ const highlights = [
   }
 ]
 
+const planLabel = {
+  free: 'Free',
+  student: 'Student',
+  premium: 'Premium'
+}
+
+const clearSubscriptionQueryParams = () => {
+  const url = new URL(window.location.href)
+  url.searchParams.delete('session_id')
+  url.searchParams.delete('checkout')
+  const cleanUrl = `${url.pathname}${url.search}${url.hash}`
+  window.history.replaceState({}, '', cleanUrl)
+}
+
 export default function Subscription() {
+  const [user, setUserState] = useState(getCurrentUser())
+  const [loadingUser, setLoadingUser] = useState(!getCurrentUser())
+  const [processingPlan, setProcessingPlan] = useState('')
+  const [error, setError] = useState('')
+  const [notice, setNotice] = useState('')
+  const hasHandledCheckoutReturn = useRef(false)
+
+  const currentPlan = user?.subscription?.plan || 'free'
+  const currentStatus = user?.subscription?.status || 'inactive'
+
+  const renewalDate = useMemo(() => {
+    const renewalRaw = user?.subscription?.renewal_at
+    if (!renewalRaw) return ''
+
+    const parsed = new Date(renewalRaw)
+    if (Number.isNaN(parsed.getTime())) return ''
+
+    return parsed.toLocaleDateString('fr-FR')
+  }, [user?.subscription?.renewal_at])
+
+  useEffect(() => {
+    const loadCurrentUser = async () => {
+      try {
+        setError('')
+        const { data } = await authApi.get('/users/me')
+
+        if (data?.user) {
+          setUserState(data.user)
+          setCurrentUser(data.user)
+        }
+      } catch (err) {
+        setError(err.response?.data?.message || 'Failed to load your current subscription.')
+      } finally {
+        setLoadingUser(false)
+      }
+    }
+
+    loadCurrentUser()
+  }, [])
+
+  useEffect(() => {
+    if (hasHandledCheckoutReturn.current) {
+      return
+    }
+
+    const searchParams = new URLSearchParams(window.location.search)
+    const sessionId = searchParams.get('session_id')
+    const checkout = searchParams.get('checkout')
+
+    if (!sessionId && checkout !== 'cancel') {
+      return
+    }
+
+    hasHandledCheckoutReturn.current = true
+
+    if (checkout === 'cancel') {
+      setNotice('Paiement annule. Aucun changement na ete applique.')
+      clearSubscriptionQueryParams()
+      return
+    }
+
+    const confirmCheckout = async () => {
+      try {
+        setProcessingPlan('confirm')
+        setError('')
+        setNotice('')
+
+        const { data } = await authApi.post('/subscriptions/confirm', {
+          session_id: sessionId
+        })
+
+        if (data?.user) {
+          setUserState(data.user)
+          setCurrentUser(data.user)
+        }
+
+        setNotice('Paiement confirme. Votre abonnement mensuel est actif.')
+      } catch (err) {
+        setError(err.response?.data?.message || 'Unable to confirm the checkout session.')
+      } finally {
+        setProcessingPlan('')
+        clearSubscriptionQueryParams()
+      }
+    }
+
+    confirmCheckout()
+  }, [])
+
+  const startCheckout = async (planKey) => {
+    if (planKey === 'free') {
+      setNotice('Le plan Free est deja disponible sans paiement.')
+      return
+    }
+
+    if (currentPlan === planKey && currentStatus === 'active') {
+      setNotice(`Votre abonnement ${planLabel[planKey]} est deja actif.`)
+      return
+    }
+
+    try {
+      setProcessingPlan(planKey)
+      setError('')
+      setNotice('')
+
+      const { data } = await authApi.post('/subscriptions/checkout-session', {
+        plan: planKey
+      })
+
+      if (!data?.checkout_url) {
+        throw new Error('Checkout URL was not returned by the server.')
+      }
+
+      window.location.assign(data.checkout_url)
+    } catch (err) {
+      setError(err.response?.data?.message || err.message || 'Failed to start checkout.')
+      setProcessingPlan('')
+    }
+  }
+
+  const resolveCtaLabel = (plan) => {
+    if (processingPlan === 'confirm') {
+      return 'Confirming payment...'
+    }
+
+    if (processingPlan === plan.planKey) {
+      return 'Redirecting to checkout...'
+    }
+
+    if (plan.planKey === currentPlan && (plan.planKey === 'free' || currentStatus === 'active')) {
+      return 'Current plan'
+    }
+
+    return plan.cta
+  }
+
+  const isPlanButtonDisabled = (plan) =>
+    Boolean(processingPlan) || (plan.planKey === currentPlan && (plan.planKey === 'free' || currentStatus === 'active'))
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 12 }}
@@ -85,7 +242,7 @@ export default function Subscription() {
               Upgrade your application workflow with a plan that matches your ambition.
             </h1>
             <p className="text-slate-300 mt-4 max-w-2xl text-base md:text-lg">
-              Pick a plan for your current stage: free to explore, student to accelerate, premium to go all in.
+              Pick a monthly plan for your current stage: free to explore, student to accelerate, premium to go all in.
             </p>
           </div>
 
@@ -95,21 +252,28 @@ export default function Subscription() {
                 <ShieldCheck size={22} />
               </div>
               <div>
-                <p className="text-sm text-slate-300">Why upgrade</p>
-                <p className="text-lg font-semibold">More AI power, more speed, more polish</p>
+                <p className="text-sm text-slate-300">Current subscription</p>
+                <p className="text-lg font-semibold">
+                  {planLabel[currentPlan]} {currentStatus === 'active' ? '(active)' : '(inactive)'}
+                </p>
               </div>
             </div>
-            <div className="grid gap-3 mt-5">
-              {highlights.map((item) => (
-                <div key={item.title} className="rounded-2xl bg-white/5 border border-white/10 px-4 py-3">
-                  <p className="font-semibold">{item.title}</p>
-                  <p className="text-sm text-slate-300 mt-1">{item.text}</p>
-                </div>
-              ))}
+
+            <div className="rounded-2xl bg-white/5 border border-white/10 px-4 py-3 mt-5">
+              <p className="text-sm text-slate-300">Renewal date</p>
+              <p className="font-semibold">{renewalDate || 'Not applicable yet'}</p>
             </div>
           </div>
         </div>
       </section>
+
+      {(loadingUser || error || notice) && (
+        <section className="card">
+          {loadingUser && <p className="text-sm text-slate-500">Loading your subscription details...</p>}
+          {!loadingUser && error && <p className="text-sm text-red-500">{error}</p>}
+          {!loadingUser && notice && <p className="text-sm text-primary">{notice}</p>}
+        </section>
+      )}
 
       <section className="grid gap-5 xl:grid-cols-3">
         {plans.map((plan, index) => {
@@ -153,10 +317,13 @@ export default function Subscription() {
 
               <button
                 type="button"
-                className={`mt-8 w-full inline-flex items-center justify-center gap-2 rounded-2xl px-4 py-3 font-semibold text-white shadow-soft bg-gradient-to-r ${plan.accent}`}
+                onClick={() => startCheckout(plan.planKey)}
+                disabled={isPlanButtonDisabled(plan)}
+                className={`mt-8 w-full inline-flex items-center justify-center gap-2 rounded-2xl px-4 py-3 font-semibold text-white shadow-soft bg-gradient-to-r ${plan.accent} disabled:opacity-70 disabled:cursor-not-allowed`}
               >
-                {plan.cta}
-                <ArrowRight size={16} />
+                {processingPlan === plan.planKey || processingPlan === 'confirm' ? <Loader2 size={16} className="animate-spin" /> : null}
+                {resolveCtaLabel(plan)}
+                {processingPlan ? null : <ArrowRight size={16} />}
               </button>
             </motion.div>
           )
@@ -167,18 +334,29 @@ export default function Subscription() {
         <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
           <div>
             <div className="pill mb-3">Simple billing</div>
-            <h3 className="text-2xl font-semibold text-slate-900">Choose the plan that fits your current goal</h3>
+            <h3 className="text-2xl font-semibold text-slate-900">Monthly plans with Stripe checkout</h3>
             <p className="text-slate-500 mt-2">
-              Free for discovery, Student at 49€ for faster momentum, and Premium at 99€ for the full experience.
+              Student at 49€ and Premium at 99€ are billed monthly. Free stays available for discovery.
             </p>
           </div>
           <div className="rounded-2xl bg-slate-50 border border-slate-100 px-5 py-4 min-w-[260px]">
-            <p className="text-sm text-slate-500">Current recommendation</p>
-            <p className="text-xl font-semibold text-slate-900 mt-1">Student plan</p>
+            <p className="text-sm text-slate-500">Current plan</p>
+            <p className="text-xl font-semibold text-slate-900 mt-1">{planLabel[currentPlan]}</p>
             <p className="text-sm text-slate-600 mt-2">
-              Best balance if you want stronger applications without jumping straight to premium.
+              Status: <span className="font-semibold capitalize">{currentStatus}</span>
             </p>
           </div>
+        </div>
+      </section>
+
+      <section className="card">
+        <div className="grid gap-3 md:grid-cols-3">
+          {highlights.map((item) => (
+            <div key={item.title} className="rounded-2xl bg-slate-50 border border-slate-100 px-4 py-3">
+              <p className="font-semibold text-slate-900">{item.title}</p>
+              <p className="text-sm text-slate-600 mt-1">{item.text}</p>
+            </div>
+          ))}
         </div>
       </section>
     </motion.div>

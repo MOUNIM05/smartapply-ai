@@ -2,9 +2,9 @@
  * Couche service - education.service.js
  * Contient la logique metier et centralise les appels aux modeles MongoDB.
  */
-const { Profile } = require("../models/profile.model");
 const { Education } = require("../models/education.model");
 const { sendNotification } = require("./notification-client.service");
+const { getOrCreateProfileByUserId } = require("./profile-bootstrap.service");
 
 const serializeEducation = (education) => ({
   id: education._id,
@@ -17,15 +17,7 @@ const serializeEducation = (education) => ({
 });
 
 const getProfileByUserIdOrThrow = async (userId) => {
-  const profile = await Profile.findOne({ user_id: userId });
-
-  if (!profile) {
-    const error = new Error("Profile not found");
-    error.statusCode = 404;
-    throw error;
-  }
-
-  return profile;
+  return getOrCreateProfileByUserId(userId);
 };
 
 const getEducationByIdForProfileOrThrow = async (profileId, educationId) => {

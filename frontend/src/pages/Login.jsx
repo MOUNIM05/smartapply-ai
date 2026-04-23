@@ -52,8 +52,9 @@ export default function Login() {
   }
 
   return (
-    <div className="min-h-screen grid lg:grid-cols-[1.05fr,1fr] bg-background">
-      <div className="relative overflow-hidden bg-gradient-to-br from-dark via-slate-900 to-primary text-white p-10 flex flex-col justify-between">
+    <div className="auth-shell p-3 lg:p-8">
+      <div className="neo-frame neo-app min-h-[calc(100vh-1.5rem)] lg:min-h-[calc(100vh-4rem)] grid lg:grid-cols-[1.05fr,1fr]">
+      <div className="relative overflow-hidden bg-black/30 text-white p-10 flex flex-col justify-between border-r border-white/10">
         <div className="absolute inset-0">
           <motion.div
             className="absolute w-72 h-72 rounded-full bg-primary/50 blur-3xl"
@@ -92,14 +93,14 @@ export default function Login() {
         </div>
       </div>
 
-      <div className="flex items-center justify-center px-6 lg:px-12 py-10 bg-background">
+      <div className="flex items-center justify-center px-6 lg:px-12 py-10">
         <motion.div
           initial={{ y: 24, opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}
           transition={{ type: 'spring', stiffness: 120, damping: 14 }}
           className="w-full max-w-md"
         >
-          <div className="card shadow-soft/60">
+          <div className="card">
             <div className="flex items-start justify-between mb-6">
               <div>
                 <p className="pill">Welcome back</p>
@@ -132,7 +133,7 @@ export default function Login() {
                 whileHover={{ scale: 1.01 }}
                 whileTap={{ scale: 0.99 }}
                 type="submit"
-                className="w-full flex items-center justify-center gap-2 bg-gradient-to-r from-primary to-indigo-500 text-white py-3 rounded-xl font-semibold shadow-soft hover:shadow-lg transition"
+                className="w-full flex items-center justify-center gap-2 bg-gradient-to-r from-violet-600 to-purple-500 text-white py-3 rounded-xl font-semibold transition"
                 disabled={loading}
               >
                 {loading ? 'Signing in...' : 'Sign in'}
@@ -148,6 +149,7 @@ export default function Login() {
             </p>
           </div>
         </motion.div>
+      </div>
       </div>
     </div>
   )

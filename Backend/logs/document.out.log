@@ -1,0 +1,7 @@
+
+> document-service@1.0.0 start
+> node server.js
+
+MongoDB connected successfully
+MongoDB connected
+Server running on port 5004

@@ -2,7 +2,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { motion } from 'framer-motion'
 import { Bell, CheckCheck, RefreshCw, Loader2, CircleDot, Inbox, Search, Archive } from 'lucide-react'
-import { notificationApi } from '../services/api'
+import { getCurrentUser, getCurrentUserName, notificationApi } from '../services/api'
 
 const formatRelativeDate = (value) => {
   if (!value) return "A l'instant"
@@ -54,6 +54,8 @@ export default function Notifications() {
   const [activeFilter, setActiveFilter] = useState('all')
   const [searchQuery, setSearchQuery] = useState('')
   const [archivingId, setArchivingId] = useState('')
+  const [currentUser, setCurrentUser] = useState(getCurrentUser())
+  const [actionMessage, setActionMessage] = useState('')
   const [error, setError] = useState('')
 
   const loadNotifications = async ({ silent = false } = {}) => {
@@ -73,6 +75,7 @@ export default function Notifications() {
 
       const nextNotifications = data?.notifications || []
       setNotifications(nextNotifications)
+      setActionMessage('')
       setError('')
 
       setSelectedId((current) => {
@@ -91,6 +94,15 @@ export default function Notifications() {
 
   useEffect(() => {
     loadNotifications()
+  }, [])
+
+  useEffect(() => {
+    const handleUserChanged = (event) => {
+      setCurrentUser(event.detail || getCurrentUser())
+    }
+
+    window.addEventListener('smartapply:user-changed', handleUserChanged)
+    return () => window.removeEventListener('smartapply:user-changed', handleUserChanged)
   }, [])
 
   const filteredNotifications = useMemo(() => {
@@ -156,10 +168,12 @@ export default function Notifications() {
                 readAt: item.readAt || new Date().toISOString()
               }
             : item
-        )
+          )
       )
+      setActionMessage('Notification marquee comme lue.')
       setError('')
     } catch (requestError) {
+      setActionMessage('')
       setError(requestError.response?.data?.message || 'Impossible de mettre a jour cette notification.')
     }
   }
@@ -178,8 +192,10 @@ export default function Notifications() {
           readAt: item.isArchived ? item.readAt : item.readAt || new Date().toISOString()
         }))
       )
+      setActionMessage('Tous les messages non lus sont maintenant marques comme lus.')
       setError('')
     } catch (requestError) {
+      setActionMessage('')
       setError(requestError.response?.data?.message || 'Impossible de marquer toutes les notifications comme lues.')
     } finally {
       setMarkingAllRead(false)
@@ -192,15 +208,19 @@ export default function Notifications() {
     setArchivingId(notificationId)
 
     try {
-      await notificationApi.patch(`/notifications/${notificationId}/archive`)
+      const { data } = await notificationApi.patch(`/notifications/${notificationId}/archive`)
+      const archivedNotification = data?.notification
 
       setNotifications((current) =>
         current.map((item) =>
           item.id === notificationId
             ? {
                 ...item,
+                ...(archivedNotification || {}),
                 isArchived: true,
-                archivedAt: item.archivedAt || new Date().toISOString()
+                archivedAt: archivedNotification?.archivedAt || item.archivedAt || new Date().toISOString(),
+                isRead: archivedNotification?.isRead ?? true,
+                readAt: archivedNotification?.readAt || item.readAt || new Date().toISOString()
               }
             : item
         )
@@ -214,16 +234,28 @@ export default function Notifications() {
         const nextVisibleNotification = filteredNotifications.find((item) => item.id !== notificationId)
         return nextVisibleNotification?.id || ''
       })
+      setActionMessage('Le message a ete archive.')
       setError('')
     } catch (requestError) {
+      setActionMessage('')
       setError(requestError.response?.data?.message || "Impossible d'archiver cette notification.")
     } finally {
       setArchivingId('')
     }
   }
 
+  const getDisplayedUserName = (userId) => {
+    if (!userId) return '-'
+
+    if (currentUser?.id && String(currentUser.id) === String(userId)) {
+      return [currentUser.first_name, currentUser.last_name].filter(Boolean).join(' ') || getCurrentUserName()
+    }
+
+    return String(userId)
+  }
+
   return (
-    <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className="space-y-6">
+    <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className="space-y-6 pb-2">
       <div className="flex items-start justify-between gap-4 flex-wrap">
         <div>
           <div className="pill mb-2">Notifications</div>
@@ -240,14 +272,14 @@ export default function Notifications() {
               value={searchQuery}
               onChange={(event) => setSearchQuery(event.target.value)}
               placeholder="Rechercher une notification..."
-              className="w-72 max-w-[80vw] rounded-xl border border-slate-200 bg-white py-2.5 pl-10 pr-4 text-sm text-slate-700 outline-none focus:border-primary/40"
+              className="w-72 max-w-[80vw] rounded-2xl border border-white/10 bg-white/[0.04] py-2.5 pl-10 pr-4 text-sm text-slate-100 outline-none focus:border-violet-400/40"
             />
           </div>
 
           <button
             type="button"
             onClick={() => loadNotifications({ silent: true })}
-            className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 hover:border-primary/30 hover:text-primary transition"
+            className="inline-flex items-center gap-2 rounded-2xl border border-white/10 bg-white/[0.04] px-4 py-2 text-sm font-semibold text-slate-200 hover:border-violet-400/30 hover:text-violet-300 transition"
           >
             <RefreshCw size={16} className={refreshing ? 'animate-spin' : ''} />
             Actualiser
@@ -257,7 +289,7 @@ export default function Notifications() {
             type="button"
             onClick={handleMarkAllAsRead}
             disabled={!unreadCount || markingAllRead}
-            className="inline-flex items-center gap-2 rounded-xl bg-slate-900 px-4 py-2 text-sm font-semibold text-white disabled:opacity-50"
+            className="inline-flex items-center gap-2 rounded-2xl bg-violet-600 px-4 py-2 text-sm font-semibold text-white disabled:opacity-50"
           >
             {markingAllRead ? <Loader2 size={16} className="animate-spin" /> : <CheckCheck size={16} />}
             Tout marquer comme lu
@@ -271,11 +303,17 @@ export default function Notifications() {
         </div>
       )}
 
+      {actionMessage && !error && (
+        <div className="card text-sm text-emerald-400">
+          {actionMessage}
+        </div>
+      )}
+
       <div className="grid grid-cols-1 xl:grid-cols-[24rem_minmax(0,1fr)] gap-6">
-        <section className="card p-0 overflow-hidden">
-          <div className="flex items-center justify-between gap-3 px-5 py-4 border-b border-slate-100">
+        <section className="card p-0 overflow-hidden bg-gradient-to-b from-[#12121a] to-[#0b0b11]">
+          <div className="flex items-center justify-between gap-3 px-5 py-4 border-b border-white/10">
             <div className="flex items-center gap-3">
-              <div className="h-11 w-11 rounded-2xl bg-primary/10 text-primary flex items-center justify-center">
+              <div className="h-11 w-11 rounded-2xl bg-violet-500/20 text-violet-300 flex items-center justify-center">
                 <Bell size={18} />
               </div>
               <div>
@@ -286,12 +324,12 @@ export default function Notifications() {
               </div>
             </div>
 
-            <div className="flex items-center gap-2 rounded-xl bg-slate-100 p-1">
+            <div className="flex items-center gap-2 rounded-2xl bg-white/[0.05] p-1 border border-white/10">
               <button
                 type="button"
                 onClick={() => setActiveFilter('all')}
-                className={`rounded-lg px-3 py-1.5 text-xs font-semibold transition ${
-                  activeFilter === 'all' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500'
+                className={`rounded-xl px-3 py-1.5 text-xs font-semibold transition ${
+                  activeFilter === 'all' ? 'bg-white text-black shadow-sm' : 'text-slate-400'
                 }`}
               >
                 Tout
@@ -299,8 +337,8 @@ export default function Notifications() {
               <button
                 type="button"
                 onClick={() => setActiveFilter('unread')}
-                className={`rounded-lg px-3 py-1.5 text-xs font-semibold transition ${
-                  activeFilter === 'unread' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500'
+                className={`rounded-xl px-3 py-1.5 text-xs font-semibold transition ${
+                  activeFilter === 'unread' ? 'bg-white text-black shadow-sm' : 'text-slate-400'
                 }`}
               >
                 Non lues
@@ -308,8 +346,8 @@ export default function Notifications() {
               <button
                 type="button"
                 onClick={() => setActiveFilter('archived')}
-                className={`rounded-lg px-3 py-1.5 text-xs font-semibold transition ${
-                  activeFilter === 'archived' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500'
+                className={`rounded-xl px-3 py-1.5 text-xs font-semibold transition ${
+                  activeFilter === 'archived' ? 'bg-white text-black shadow-sm' : 'text-slate-400'
                 }`}
               >
                 Archives
@@ -339,14 +377,14 @@ export default function Notifications() {
                   key={notification.id}
                   type="button"
                   onClick={() => handleSelectNotification(notification)}
-                  className={`w-full px-5 py-4 text-left border-b border-slate-100 transition ${
+                  className={`w-full px-5 py-4 text-left border-b border-white/10 transition ${
                     selectedNotification?.id === notification.id
-                      ? 'bg-slate-900 text-white'
+                      ? 'bg-white/[0.08] text-white'
                       : notification.isArchived
-                        ? 'bg-slate-100/80 hover:bg-slate-200/70'
+                        ? 'bg-white/[0.02] hover:bg-white/[0.06]'
                         : notification.isRead
-                          ? 'bg-white hover:bg-slate-50'
-                          : 'bg-primary/5 hover:bg-primary/10'
+                          ? 'bg-transparent hover:bg-white/[0.05]'
+                          : 'bg-violet-500/10 hover:bg-violet-500/20'
                   }`}
                 >
                   <div className="flex items-start justify-between gap-3">
@@ -359,7 +397,7 @@ export default function Notifications() {
                         {notification.isArchived && (
                           <span
                             className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ${
-                              selectedNotification?.id === notification.id ? 'bg-white/10 text-white' : 'bg-slate-200 text-slate-600'
+                              selectedNotification?.id === notification.id ? 'bg-white/10 text-white' : 'bg-white/10 text-slate-300'
                             }`}
                           >
                             Archivee
@@ -376,7 +414,7 @@ export default function Notifications() {
                     </div>
                     <span
                       className={`shrink-0 text-[11px] ${
-                        selectedNotification?.id === notification.id ? 'text-slate-300' : 'text-slate-400'
+                        selectedNotification?.id === notification.id ? 'text-slate-300' : 'text-slate-500'
                       }`}
                     >
                       {formatRelativeDate(notification.createdAt)}
@@ -388,10 +426,10 @@ export default function Notifications() {
           </div>
         </section>
 
-        <section className="card min-h-[32rem]">
+        <section className="card min-h-[32rem] bg-gradient-to-b from-[#12121a] to-[#0b0b11]">
           {!selectedNotification ? (
             <div className="h-full flex flex-col items-center justify-center text-center text-slate-500">
-              <div className="h-16 w-16 rounded-3xl bg-slate-100 text-slate-400 flex items-center justify-center mb-4">
+              <div className="h-16 w-16 rounded-3xl bg-white/[0.06] text-slate-400 flex items-center justify-center mb-4 border border-white/10">
                 <Bell size={26} />
               </div>
               <h2 className="text-lg font-semibold text-slate-900">Selectionne une notification</h2>
@@ -426,7 +464,7 @@ export default function Notifications() {
                     type="button"
                     onClick={() => handleArchiveNotification(selectedNotification.id)}
                     disabled={archivingId === selectedNotification.id}
-                    className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 hover:border-primary/30 hover:text-primary transition disabled:opacity-50"
+                    className="inline-flex items-center gap-2 rounded-xl border border-white/10 bg-white/[0.04] px-4 py-2 text-sm font-semibold text-slate-200 hover:border-violet-400/30 hover:text-violet-300 transition disabled:opacity-50"
                   >
                     {archivingId === selectedNotification.id ? <Loader2 size={16} className="animate-spin" /> : <Archive size={16} />}
                     Archiver
@@ -435,43 +473,43 @@ export default function Notifications() {
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-                <div className="rounded-2xl border border-slate-100 bg-slate-50/80 p-4">
+                <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-4">
                   <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">Creee le</p>
                   <p className="mt-2 text-sm font-medium text-slate-900">{formatDateTime(selectedNotification.createdAt)}</p>
                 </div>
 
-                <div className="rounded-2xl border border-slate-100 bg-slate-50/80 p-4">
+                <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-4">
                   <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">Lue le</p>
                   <p className="mt-2 text-sm font-medium text-slate-900">
                     {selectedNotification.isRead ? formatDateTime(selectedNotification.readAt) : 'Pas encore lue'}
                   </p>
                 </div>
 
-                <div className="rounded-2xl border border-slate-100 bg-slate-50/80 p-4">
+                <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-4">
                   <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">Archivee le</p>
                   <p className="mt-2 text-sm font-medium text-slate-900">
                     {selectedNotification.isArchived ? formatDateTime(selectedNotification.archivedAt) : 'Pas archivee'}
                   </p>
                 </div>
 
-                <div className="rounded-2xl border border-slate-100 bg-slate-50/80 p-4">
+                <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-4">
                   <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">Evenement</p>
                   <p className="mt-2 text-sm font-medium text-slate-900">{selectedNotification.event || '-'}</p>
                 </div>
 
-                <div className="rounded-2xl border border-slate-100 bg-slate-50/80 p-4">
+                <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-4">
                   <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">Utilisateur</p>
-                  <p className="mt-2 text-sm font-medium text-slate-900">{selectedNotification.userId || '-'}</p>
+                  <p className="mt-2 text-sm font-medium text-slate-900">{getDisplayedUserName(selectedNotification.userId)}</p>
                 </div>
               </div>
 
-              <div className="rounded-3xl border border-slate-100 bg-white">
-                <div className="px-5 py-4 border-b border-slate-100">
+              <div className="rounded-3xl border border-white/10 bg-white/[0.03]">
+                <div className="px-5 py-4 border-b border-white/10">
                   <h3 className="text-lg font-semibold text-slate-900">Metadonnees</h3>
                   <p className="text-sm text-slate-500 mt-1">Informations techniques et contextuelles associees a cette notification.</p>
                 </div>
 
-                <div className="divide-y divide-slate-100">
+                <div className="divide-y divide-white/10">
                   {selectedNotification.metadata && Object.keys(selectedNotification.metadata).length > 0 ? (
                     Object.entries(selectedNotification.metadata).map(([key, value]) => (
                       <div key={key} className="grid grid-cols-1 md:grid-cols-[12rem_minmax(0,1fr)] gap-3 px-5 py-4">

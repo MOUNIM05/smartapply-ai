@@ -76,9 +76,31 @@ const validateCreateAIGenerationResponseRequest = (payload) => {
   };
 };
 
+const validateParseCVUploadRequest = (payload) => {
+  const fileName = ensureText(payload?.fileName, "fileName");
+  const mimeType = ensureText(payload?.mimeType, "mimeType").toLowerCase();
+  const rawContent = ensureText(payload?.contentBase64, "contentBase64");
+  const normalizedContent = rawContent.includes(",")
+    ? rawContent.split(",").pop().trim()
+    : rawContent.trim();
+
+  if (!normalizedContent) {
+    const error = new Error("contentBase64 is required");
+    error.statusCode = 422;
+    throw error;
+  }
+
+  return {
+    fileName,
+    mimeType,
+    contentBase64: normalizedContent
+  };
+};
+
 module.exports = {
   validateCreateAIModelRequest,
   validateCreateAIGenerationRequest,
-  validateCreateAIGenerationResponseRequest
+  validateCreateAIGenerationResponseRequest,
+  validateParseCVUploadRequest
 };
 

@@ -25,8 +25,9 @@ export default function Register() {
   }
 
   return (
-    <div className="min-h-screen grid lg:grid-cols-[1fr,1.1fr] bg-background">
-      <div className="relative overflow-hidden bg-gradient-to-br from-primary to-indigo-400 text-white p-10 flex flex-col justify-between">
+    <div className="auth-shell p-3 lg:p-8">
+      <div className="neo-frame neo-app min-h-[calc(100vh-1.5rem)] lg:min-h-[calc(100vh-4rem)] grid lg:grid-cols-[1fr,1.1fr]">
+      <div className="relative overflow-hidden bg-black/30 text-white p-10 flex flex-col justify-between border-r border-white/10">
         <div className="absolute inset-0 pointer-events-none">
           <motion.div
             className="absolute w-72 h-72 rounded-full bg-white/20 blur-3xl"
@@ -112,7 +113,7 @@ export default function Register() {
                   whileHover={{ scale: 1.01 }}
                   whileTap={{ scale: 0.99 }}
                   type="submit"
-                  className="w-full flex items-center justify-center gap-2 bg-gradient-to-r from-primary to-indigo-500 text-white py-3 rounded-xl font-semibold shadow-soft hover:shadow-lg transition"
+                  className="w-full flex items-center justify-center gap-2 bg-gradient-to-r from-violet-600 to-purple-500 text-white py-3 rounded-xl font-semibold transition"
                   disabled={loading}
                 >
                   {loading ? 'Creating account...' : 'Create account'}
@@ -129,6 +130,7 @@ export default function Register() {
             </p>
           </div>
         </motion.div>
+      </div>
       </div>
     </div>
   )

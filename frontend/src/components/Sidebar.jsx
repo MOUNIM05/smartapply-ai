@@ -41,16 +41,16 @@ function Sidebar({ collapsed = false, onToggle, onNavigate }) {
     <motion.div
       animate={{ width }}
       transition={{ type: 'spring', stiffness: 180, damping: 18 }}
-      className="h-full bg-dark text-slate-100 flex flex-col border-r border-white/5 py-6"
+      className="h-full bg-[#06060a] text-slate-100 flex flex-col border-r border-white/10 py-5"
     >
-      <div className="px-4 flex items-center gap-3 pb-6 border-b border-white/10">
+      <div className="px-4 flex items-center gap-3 pb-5 border-b border-white/10">
         {collapsed ? (
-          <BrandLogo showWordmark={false} className="h-10 w-10" />
+          <BrandLogo showWordmark={false} className="h-10 w-10 rounded-xl bg-black/40 border border-white/10" />
         ) : (
           <BrandLogo compact className="min-w-0" />
         )}
         <button
-          className="ml-auto h-9 w-9 rounded-lg border border-white/10 text-slate-200 hover:bg-white/10 transition"
+          className="ml-auto h-9 w-9 rounded-full border border-white/10 text-slate-300 hover:bg-white/10 transition"
           onClick={onToggle}
         >
           {collapsed ? '>' : '<'}
@@ -65,15 +65,15 @@ function Sidebar({ collapsed = false, onToggle, onNavigate }) {
                 to={to}
                 onClick={onNavigate}
                 className={({ isActive }) =>
-                  `flex items-center gap-3 px-3 py-2 rounded-xl transition-all duration-150 ${
+                  `flex items-center gap-3 px-3 py-2.5 rounded-2xl transition-all duration-150 ${
                     isActive
-                      ? 'bg-white/10 text-white shadow-inner'
+                      ? 'bg-white text-black shadow-[0_8px_24px_rgba(255,255,255,0.24)]'
                       : 'text-slate-300 hover:bg-white/5 hover:text-white'
                   }`
                 }
               >
-                <Icon size={18} />
-                {!collapsed && <span className="text-sm font-medium">{label}</span>}
+                <Icon size={18} className="shrink-0" />
+                {!collapsed && <span className="text-sm font-semibold">{label}</span>}
               </NavLink>
             </li>
           ))}
@@ -85,13 +85,13 @@ function Sidebar({ collapsed = false, onToggle, onNavigate }) {
           <button
             type="button"
             onClick={handleUpgrade}
-            className="w-full flex items-center gap-3 px-3 py-2 rounded-xl bg-primary/20 text-white hover:bg-primary/30 transition"
+            className="w-full flex items-center gap-3 px-3 py-2.5 rounded-2xl bg-gradient-to-r from-violet-700 to-purple-500 text-white hover:brightness-110 transition"
           >
             <Sparkles size={18} />
             <span className="text-sm font-semibold">Upgrade to Pro</span>
           </button>
         )}
-        <button onClick={handleLogout} className="flex items-center gap-3 px-3 py-2 rounded-xl hover:bg-white/10 transition text-slate-300">
+        <button onClick={handleLogout} className="w-full flex items-center gap-3 px-3 py-2.5 rounded-2xl hover:bg-white/10 transition text-slate-300">
           <LogOut size={18} />
           {!collapsed && <span className="text-sm">Logout</span>}
         </button>

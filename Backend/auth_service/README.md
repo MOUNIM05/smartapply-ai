@@ -19,6 +19,8 @@ Service d'authentification et de gestion utilisateur de SmartApplyAI.
 - `POST /auth/logout`
 - `GET /users/me`
 - `PUT /users/me`
+- `POST /subscriptions/checkout-session`
+- `POST /subscriptions/confirm`
 - `DELETE /users/me`
 - `GET /users`
 - `GET /users/:id`
@@ -32,6 +34,7 @@ Service d'authentification et de gestion utilisateur de SmartApplyAI.
 - role `user` et role `admin`
 - prise en charge de `address` et `avatar_url`
 - notifications envoyees au `notification_service` pour les actions de compte
+- prise en charge d'abonnements mensuels `student` et `premium` via Stripe Checkout
 
 ## Scripts
 

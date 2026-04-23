@@ -98,6 +98,14 @@ Variables importantes pour l'IA :
 - `OPENAI_MODEL`
 - `OPENAI_TIMEOUT_MS`
 
+Variables importantes pour l'abonnement mensuel Stripe (service auth) :
+
+- `STRIPE_SECRET_KEY`
+- `STRIPE_PRICE_STUDENT_MONTHLY`
+- `STRIPE_PRICE_PREMIUM_MONTHLY`
+- `STRIPE_CHECKOUT_SUCCESS_URL`
+- `STRIPE_CHECKOUT_CANCEL_URL`
+
 Si `OPENAI_API_KEY` n'est pas configuree, `ai_service` bascule sur un fallback local.
 
 ## Lancement avec Docker

@@ -2,6 +2,7 @@
  * Couche service - user.service.js
  * Contient la logique metier et centralise les appels aux modeles MongoDB.
  */
+const bcrypt = require("bcryptjs");
 const { User } = require("../models/auth.model");
 const { hashPassword } = require("./auth.service");
 const { sendNotification } = require("./notification-client.service");
@@ -14,6 +15,13 @@ const sanitizeUser = (user) => ({
   address: user.address,
   avatar_url: user.avatar_url,
   role: user.role,
+  subscription: {
+    plan: user.subscription_plan,
+    status: user.subscription_status,
+    interval: user.subscription_interval,
+    started_at: user.subscription_started_at,
+    renewal_at: user.subscription_renewal_at
+  },
   createdAt: user.createdAt,
   updatedAt: user.updatedAt
 });
@@ -92,6 +100,35 @@ const updateCurrentUser = async (userId, updates) => {
   return {
     message: "Profile updated successfully",
     user: sanitizeUser(user)
+  };
+};
+
+const changeCurrentUserPassword = async (userId, { currentPassword, newPassword }) => {
+  const user = await findUserByIdOrThrow(userId);
+
+  const isCurrentPasswordValid = await bcrypt.compare(currentPassword, user.password);
+
+  if (!isCurrentPasswordValid) {
+    const error = new Error("Current password is incorrect");
+    error.statusCode = 401;
+    throw error;
+  }
+
+  user.password = await hashPassword(newPassword);
+  await user.save();
+
+  await sendNotification({
+    userId: String(user._id),
+    title: "Mot de passe mis a jour",
+    message: "Votre mot de passe a ete change avec succes.",
+    type: "system",
+    event: "user_password_changed",
+    sourceService: "auth-service",
+    metadata: {}
+  });
+
+  return {
+    message: "Password changed successfully"
   };
 };
 
@@ -260,8 +297,10 @@ const deleteUserByAdmin = async (userId, actorUserId) => {
 };
 
 module.exports = {
+  sanitizeUser,
   getCurrentUser,
   updateCurrentUser,
+  changeCurrentUserPassword,
   deleteCurrentUser,
   listUsers,
   getUserById,

@@ -3,9 +3,28 @@ import { useEffect, useMemo, useState } from 'react'
 import { motion } from 'framer-motion'
 import { Sparkles, Loader2, Copy, Download, FileText } from 'lucide-react'
 import { aiApi, documentApi, getCurrentUser, profileApi } from '../services/api'
+import cvTemplateModernSidebar from '../assets/templates/cv-template-modern-sidebar.jpg'
+import cvTemplateSimpleSidebar from '../assets/templates/cv-template-simple-sidebar.jpg'
+import cvTemplateClassicBalance from '../assets/templates/cv-template-classic-balance.jpg'
 
 const templateOptionsByAction = {
-  cv: [{ id: 'cv-modern-sidebar', label: 'CV Sidebar Pro' }],
+  cv: [
+    {
+      id: 'cv-modern-sidebar',
+      label: 'CV Sidebar Pro',
+      preview: cvTemplateModernSidebar
+    },
+    {
+      id: 'cv-simple-sidebar',
+      label: 'CV Simple Sidebar',
+      preview: cvTemplateSimpleSidebar
+    },
+    {
+      id: 'cv-classic-balance',
+      label: 'CV Classic Balance',
+      preview: cvTemplateClassicBalance
+    }
+  ],
   motivation: [{ id: 'motivation-formal', label: 'Formal Motivation Letter' }],
   email: [{ id: 'email-prime', label: 'Prime Email' }],
   improve: [{ id: 'smart-improve', label: 'Smart Improve' }],
@@ -383,7 +402,7 @@ export default function GenerateCV() {
 
       <div className="mt-6">
         <h3 className="text-lg font-semibold text-slate-900 mb-3">Document Templates</h3>
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+        <div className={`grid gap-3 ${action === 'cv' ? 'grid-cols-1 md:grid-cols-3' : 'grid-cols-2 md:grid-cols-4'}`}>
           {availableTemplates.map((item) => (
             <motion.button
               key={item.id}
@@ -393,7 +412,16 @@ export default function GenerateCV() {
                 template === item.id ? 'border-primary bg-primary/10 text-primary shadow-soft' : 'border-slate-200 bg-white hover:border-primary/40'
               }`}
             >
-              {item.label}
+              {item.preview ? (
+                <div className="space-y-3">
+                  <div className="w-full h-44 rounded-lg border border-slate-200 overflow-hidden bg-slate-100">
+                    <img src={item.preview} alt={item.label} className="h-full w-full object-cover" />
+                  </div>
+                  <p>{item.label}</p>
+                </div>
+              ) : (
+                item.label
+              )}
             </motion.button>
           ))}
         </div>

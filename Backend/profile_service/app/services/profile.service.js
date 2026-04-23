@@ -5,6 +5,7 @@
 const { User } = require("../models/user.model");
 const { Profile } = require("../models/profile.model");
 const { sendNotification } = require("./notification-client.service");
+const { getOrCreateProfileByUserId } = require("./profile-bootstrap.service");
 
 const serializeUser = (user) =>
   user
@@ -19,6 +20,20 @@ const serializeUser = (user) =>
       }
     : null;
 
+const serializeCvUpload = (cvUpload) => {
+  if (!cvUpload || !cvUpload.contentBase64) {
+    return null;
+  }
+
+  return {
+    fileName: cvUpload.fileName,
+    mimeType: cvUpload.mimeType,
+    size: cvUpload.size,
+    uploadedAt: cvUpload.uploadedAt,
+    hasFile: true
+  };
+};
+
 const serializeProfile = (profile) => ({
   id: profile._id,
   user_id: profile.user_id?._id || profile.user_id,
@@ -29,21 +44,14 @@ const serializeProfile = (profile) => ({
   linkedin_url: profile.linkedin_url,
   github_url: profile.github_url,
   portfolio_url: profile.portfolio_url,
+  cv_upload: serializeCvUpload(profile.cv_upload),
   user: serializeUser(profile.user_id),
   created_at: profile.createdAt,
   updated_at: profile.updatedAt
 });
 
 const getProfileByUserIdOrThrow = async (userId) => {
-  const profile = await Profile.findOne({ user_id: userId });
-
-  if (!profile) {
-    const error = new Error("Profile not found");
-    error.statusCode = 404;
-    throw error;
-  }
-
-  return profile;
+  return getOrCreateProfileByUserId(userId);
 };
 
 const createProfile = async (userId, payload) => {
@@ -184,6 +192,76 @@ const deleteCurrentProfile = async (userId) => {
   };
 };
 
+const upsertCurrentProfileCV = async (userId, cvPayload) => {
+  const profile = await getProfileByUserIdOrThrow(userId);
+
+  profile.cv_upload = {
+    fileName: cvPayload.fileName,
+    mimeType: cvPayload.mimeType,
+    size: cvPayload.size,
+    contentBase64: cvPayload.contentBase64,
+    uploadedAt: new Date()
+  };
+  await profile.save();
+
+  await sendNotification({
+    userId: String(userId),
+    title: "CV enregistre",
+    message: "Votre CV a ete enregistre et remplace l'ancien fichier.",
+    type: "profile",
+    event: "profile_cv_uploaded",
+    sourceService: "profile-service",
+    metadata: {
+      profileId: String(profile._id),
+      fileName: cvPayload.fileName,
+      mimeType: cvPayload.mimeType,
+      size: cvPayload.size
+    }
+  });
+
+  return {
+    message: "CV uploaded successfully",
+    cvUpload: serializeCvUpload(profile.cv_upload)
+  };
+};
+
+const getCurrentProfileCV = async (userId) => {
+  const profile = await getProfileByUserIdOrThrow(userId);
+
+  return {
+    cvUpload: serializeCvUpload(profile.cv_upload)
+  };
+};
+
+const deleteCurrentProfileCV = async (userId) => {
+  const profile = await getProfileByUserIdOrThrow(userId);
+
+  if (!profile.cv_upload || !profile.cv_upload.contentBase64) {
+    const error = new Error("No uploaded CV found");
+    error.statusCode = 404;
+    throw error;
+  }
+
+  profile.cv_upload = null;
+  await profile.save();
+
+  await sendNotification({
+    userId: String(userId),
+    title: "CV supprime",
+    message: "Votre CV enregistre a ete supprime.",
+    type: "profile",
+    event: "profile_cv_deleted",
+    sourceService: "profile-service",
+    metadata: {
+      profileId: String(profile._id)
+    }
+  });
+
+  return {
+    message: "CV deleted successfully"
+  };
+};
+
 const createProfileByAdmin = async (userId, payload, actorUserId) => {
   const user = await User.findById(userId);
 
@@ -312,6 +390,9 @@ module.exports = {
   listProfiles,
   updateCurrentProfile,
   deleteCurrentProfile,
+  upsertCurrentProfileCV,
+  getCurrentProfileCV,
+  deleteCurrentProfileCV,
   createProfileByAdmin,
   updateProfileById,
   deleteProfileById

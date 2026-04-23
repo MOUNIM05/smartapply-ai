@@ -1,0 +1,6 @@
+
+> cv-ai-profile-service@1.0.0 start
+> node app/main.js
+
+MongoDB connected successfully
+Profile service running on port 5001

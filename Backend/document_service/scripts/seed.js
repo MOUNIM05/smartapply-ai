@@ -1,7 +1,16 @@
 // Provides the Seed script for the document service.
-import "dotenv/config";
+import dotenv from "dotenv";
+import path from "path";
+import { fileURLToPath } from "url";
 import mongoose from "mongoose";
 import CVTemplate from "../models/cv-template.model.js";
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+dotenv.config({
+  path: path.resolve(__dirname, "../.env")
+});
 
 const templates = [
   {
@@ -38,6 +47,10 @@ const templates = [
 
 const seedTemplates = async () => {
   try {
+    if (!process.env.MONGO_URI) {
+      throw new Error("MONGO_URI is not configured");
+    }
+
     await mongoose.connect(process.env.MONGO_URI);
     console.log("Connected to MongoDB");
 

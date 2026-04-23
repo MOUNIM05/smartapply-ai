@@ -24,6 +24,20 @@ const cvSchema = new mongoose.Schema({
 
 const ensureArray = (value) => (Array.isArray(value) ? value.filter(Boolean) : []);
 const ensureText = (value) => (typeof value === "string" ? value.trim() : "");
+const defaultLayoutByTemplateKey = {
+  "cv-modern-sidebar": {
+    accentColor: "#cfe0f5",
+    sections: ["summary", "experience", "education", "skills", "languages"]
+  },
+  "cv-simple-sidebar": {
+    accentColor: "#1f2937",
+    sections: ["summary", "experience", "education", "skills", "languages", "hobbies"]
+  },
+  "cv-classic-balance": {
+    accentColor: "#5b6870",
+    sections: ["summary", "skills", "awards", "education", "experience", "hobbies"]
+  }
+};
 
 const normalizeListEntries = (value) =>
   ensureArray(value).map((item) => {
@@ -65,6 +79,7 @@ cvSchema.methods.generate = function generate(payload = {}, template = null) {
   const education = normalizeListEntries(payload.education);
   const projects = normalizeListEntries(payload.projects);
   const templateKey = ensureText(payload.templateKey || payload.template || template?.style) || "cv-modern-sidebar";
+  const fallbackLayout = defaultLayoutByTemplateKey[templateKey] || defaultLayoutByTemplateKey["cv-modern-sidebar"];
   const orderedSections = [
     summary ? `Profile\n${summary}` : "",
     skills.length ? `Skills\n${skills.map((item) => `- ${item}`).join("\n")}` : "",
@@ -95,8 +110,8 @@ cvSchema.methods.generate = function generate(payload = {}, template = null) {
     experience,
     education,
     projects,
-    accentColor: template?.layoutOptions?.accentColor || "#cfe0f5",
-    sections: template?.layoutOptions?.sections || ["summary", "experience", "education", "skills", "languages"]
+    accentColor: template?.layoutOptions?.accentColor || fallbackLayout.accentColor,
+    sections: template?.layoutOptions?.sections || fallbackLayout.sections
   };
 
   if (!this.content) {

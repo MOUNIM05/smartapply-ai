@@ -1,0 +1,7 @@
+
+> cv-ai-notification-service@1.0.0 start
+> node app/main.js
+
+MongoDB connected successfully
+Notification service running on port 5005
+[0mGET /notifications/me?limit=12 [32m200[0m 81.581 ms - 20[0m

@@ -5,7 +5,9 @@
   "main": "index.js",
   "scripts": {
     "test": "node scripts/test-services.js",
-    "test:services": "node scripts/test-services.js"
+    "test:services": "node scripts/test-services.js",
+    "start:local": "node scripts/start-local-backend.js",
+    "status:local": "node scripts/status-local-backend.js"
   },
   "keywords": [],
   "author": "",

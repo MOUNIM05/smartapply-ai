@@ -5,7 +5,8 @@
 const {
   validateCreateAIModelRequest,
   validateCreateAIGenerationRequest,
-  validateCreateAIGenerationResponseRequest
+  validateCreateAIGenerationResponseRequest,
+  validateParseCVUploadRequest
 } = require("../schemas/ai.schema");
 const {
   createAIModel,
@@ -16,7 +17,8 @@ const {
   getAIGenerationRequestById,
   createAIGenerationResponse,
   listAIGenerationResponses,
-  getAIGenerationResponseById
+  getAIGenerationResponseById,
+  parseCVUpload
 } = require("../services/ai.service");
 
 const createAIModelController = async (req, res, next) => {
@@ -103,6 +105,16 @@ const getAIGenerationResponseByIdController = async (req, res, next) => {
   }
 };
 
+const parseCVUploadController = async (req, res, next) => {
+  try {
+    const payload = validateParseCVUploadRequest(req.body);
+    const result = await parseCVUpload(req.user.userId, payload);
+    res.status(200).json(result);
+  } catch (error) {
+    next(error);
+  }
+};
+
 module.exports = {
   createAIModelController,
   listAIModelsController,
@@ -112,6 +124,7 @@ module.exports = {
   getAIGenerationRequestByIdController,
   createAIGenerationResponseController,
   listAIGenerationResponsesController,
-  getAIGenerationResponseByIdController
+  getAIGenerationResponseByIdController,
+  parseCVUploadController
 };
 
